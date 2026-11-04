@@ -7,3 +7,5 @@ orca/.env
 orca/cloudflared/*.json
 orca/cloudflared/cert.pem
 orca/*.log
+orca/.inventar.txt
+orca/.instalat.json
