@@ -1,0 +1,43 @@
+{
+  "_exemplu": true,
+  "_nota": "Exemplu (recenziile de mai jos sunt inventate; cele reale le scrie n8n, workflow recenzii-google, săptămânal, din Google Places API). Place ID-ul este cel real, dat de Sorin pe 21 oct 2026. Site-ul ascunde secțiunea dacă `actualizat` are peste 30 de zile.",
+  "actualizat": "2026-10-19T06:00:00+03:00",
+  "sursa": "Google Places API, Place Details",
+  "place_id": "ChIJh_Ql7G16U0cRS6gH1eRpkXQ",
+  "url_recenzie_noua": "https://search.google.com/local/writereview?placeid=ChIJh_Ql7G16U0cRS6gH1eRpkXQ",
+  "url_google": "https://www.google.com/maps/place/?q=place_id:ChIJh_Ql7G16U0cRS6gH1eRpkXQ",
+  "rating": 4.5,
+  "numar": 180,
+  "recenzii": [
+    {
+      "autor": "Ana M.",
+      "nota": 5,
+      "data": "2026-10-02",
+      "text": "Ciorba de pește a fost excelentă, terasa liniștită și personalul atent. Revenim cu drag."
+    },
+    {
+      "autor": "Dan P.",
+      "nota": 4,
+      "data": "2026-09-20",
+      "text": "Meniul zilei bun și rapid, prețuri corecte. Parcarea e mai greu de găsit în centru."
+    },
+    {
+      "autor": "Elena V.",
+      "nota": 5,
+      "data": "2026-09-05",
+      "text": "Am avut botezul în sală: mâncare multă și bună, tortul de la cofetăria lor a fost superb."
+    },
+    {
+      "autor": "Mihai R.",
+      "nota": 5,
+      "data": "2026-08-18",
+      "text": "Oprire de drum spre Vidin. Mâncare ca acasă, porții mari, oameni calzi."
+    },
+    {
+      "autor": "Ioana C.",
+      "nota": 4,
+      "data": "2026-08-01",
+      "text": "Terasa cu acoperiș e salvarea în zilele cu ploaie. Berea rece, muzica potrivită."
+    }
+  ]
+}

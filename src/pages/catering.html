@@ -1,0 +1,185 @@
+<!-- @page
+  title: Catering, pomeni și prânz la birou
+  descriere: Catering OK Calafat: mâncare gătită pentru evenimente, pachete pentru pomeni și parastase, meniul zilei livrat la birou pentru firme și instituții. Comandă online sau la 0785255855.
+  nav: catering
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">Gătim la noi, aducem la tine</span>
+    <h1>Catering OK</h1>
+    <p>Bucătăria restaurantului, livrată acolo unde ai nevoie de ea: la un eveniment, la biserică sau acasă pentru o pomană, la birou pentru prânzul echipei.</p>
+    <div class="butoane">
+      <a class="buton" href="#comanda">Trimite o comandă</a>
+      <a class="buton buton-secundar" href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>
+      <a class="buton buton-secundar" href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20A%C8%99%20vrea%20o%20ofert%C4%83%20de%20catering." rel="noopener" target="_blank">Scrie pe WhatsApp</a>
+    </div>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune" id="oferte">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Trei feluri de a comanda</span>
+      <h2>Ce livrăm</h2>
+    </div>
+    <div class="grila grila-3">
+      <div class="card" id="evenimente">
+        <span class="eticheta">Evenimente</span>
+        <h3>Catering pentru evenimente</h3>
+        <p>Bufet sau meniu servit, la locația ta: petreceri de firmă, aniversări acasă, evenimente în aer liber. Meniul îl stabilim împreună, în funcție de ocazie și de numărul de invitați.</p>
+        <p class="mic"><span class="todo">TODO-Sorin: preț orientativ pe persoană, număr minim de persoane</span></p>
+        <a class="buton buton-secundar" href="#comanda" data-alege-tip="eveniment">Cere ofertă</a>
+      </div>
+      <div class="card" id="pomeni">
+        <span class="eticheta">Pomeni și parastase</span>
+        <h3>Pachete pentru pomeni</h3>
+        <p>Meniu tradițional, pregătit în pachete, livrat la biserică sau acasă, la ora stabilită. Îți luăm de pe cap grija mâncării într-o zi grea.</p>
+        <p class="mic"><span class="todo">TODO-Sorin: conținutul pachetului standard și prețul</span></p>
+        <a class="buton buton-secundar" href="#comanda" data-alege-tip="pomana">Comandă pachete</a>
+      </div>
+      <div class="card" id="pranz-birou">
+        <span class="eticheta">Prânz la birou</span>
+        <h3>Meniul zilei livrat la firmă</h3>
+        <p>Meniul zilei de la Gastro-pub OK, <strong>24 lei porția</strong>, livrat la firmă sau instituție. Comanda se face săptămânal, pentru toată echipa, iar meniul îl primești din timp.</p>
+        <a class="buton buton-secundar" href="#comanda" data-alege-tip="pranz-birou">Comandă pentru firma ta</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="meniul-saptamanii">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Prânz la birou</span>
+      <h2>Meniul săptămânii</h2>
+      <p>Ce gătim în zilele următoare pentru prânzul la birou. Lista se actualizează la fiecare început de săptămână; preparatele pot suferi mici schimbări în funcție de ce găsim proaspăt în piață.</p>
+    </div>
+    <div data-meniu-saptamana data-whatsapp="{{contact.whatsapp}}">
+      <p data-meniu-saptamana-fallback>Meniul săptămânii îl primești pe WhatsApp, la <a href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20A%C8%99%20vrea%20meniul%20s%C4%83pt%C4%83m%C3%A2nii%20pentru%20pr%C3%A2nzul%20la%20birou." rel="noopener" target="_blank">{{contact.telefon}}</a>. Azi: vezi <a href="gastro-pub.html#meniul-zilei">meniul zilei</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="comanda">
+  <div class="container">
+    <div class="grila grila-2 grila-cerere">
+      <div>
+        <span class="eticheta">Comandă sau cere ofertă</span>
+        <h2>Spune-ne ce ai nevoie</h2>
+        <p>Completezi într-un minut; te sunăm să confirmăm meniul, prețul și ora livrării. Dacă preferi, ne suni sau ne scrii pe WhatsApp.</p>
+
+        <form class="formular" data-cerere="catering" method="post" action="https://hooks.restaurantok.com/webhook/site-cerere" novalidate>
+          <p class="formular-eroare" data-eroare role="alert" hidden></p>
+          <div class="camp">
+            <label for="c-tip-comanda">Ce comanzi</label>
+            <select id="c-tip-comanda" name="tip_comanda" required>
+              <option value="">Alege…</option>
+              <option value="eveniment">Catering pentru un eveniment</option>
+              <option value="pomana">Pachete pentru pomană / parastas</option>
+              <option value="pranz-birou">Prânz la birou pentru firmă / instituție</option>
+            </select>
+          </div>
+          <div class="camp-rand">
+            <div class="camp">
+              <label for="c-data" data-eticheta-data data-eveniment="Data evenimentului" data-pomana="Data pomenii" data-pranz-birou="De când începem">Data</label>
+              <input id="c-data" name="data_eveniment" type="date" required>
+            </div>
+            <div class="camp">
+              <label for="c-persoane" data-eticheta-persoane data-eveniment="Număr de persoane" data-pomana="Număr de pachete" data-pranz-birou="Porții pe zi">Număr de persoane</label>
+              <input id="c-persoane" name="persoane" type="number" inputmode="numeric" min="1" max="999" required placeholder="ex. 30">
+            </div>
+          </div>
+          <div class="camp-rand">
+            <div class="camp">
+              <label for="c-livrare">Cum primești mâncarea</label>
+              <select id="c-livrare" name="livrare">
+                <option value="adresa">Livrare la adresă</option>
+                <option value="ridicare">Ridic eu de la restaurant</option>
+              </select>
+            </div>
+            <div class="camp">
+              <label for="c-ora">Ora dorită <span class="mut">(opțional)</span></label>
+              <input id="c-ora" name="ora" type="time" step="300">
+            </div>
+          </div>
+          <div class="camp" data-camp-adresa>
+            <label for="c-adresa">Adresa de livrare</label>
+            <input id="c-adresa" name="adresa" type="text" autocomplete="address-line1" maxlength="200" placeholder="strada, numărul, localitatea (sau biserica)">
+          </div>
+          <div class="camp">
+            <label for="c-nume">Numele tău <span class="mut">(sau al firmei)</span></label>
+            <input id="c-nume" name="nume" type="text" autocomplete="name" required minlength="2" maxlength="80">
+          </div>
+          <div class="camp-rand">
+            <div class="camp">
+              <label for="c-telefon">Telefon</label>
+              <input id="c-telefon" name="telefon" type="tel" autocomplete="tel" inputmode="tel" required placeholder="07xx xxx xxx">
+            </div>
+            <div class="camp">
+              <label for="c-email">Email <span class="mut">(opțional)</span></label>
+              <input id="c-email" name="email" type="email" autocomplete="email" maxlength="120">
+            </div>
+          </div>
+          <div class="camp">
+            <label for="c-mesaj">Detalii <span class="mut">(opțional)</span></label>
+            <textarea id="c-mesaj" name="mesaj" rows="4" maxlength="1500" placeholder="Meniul dorit, preferințe (de post, fără carne de porc), alergii, cum ajungem la adresă."></textarea>
+          </div>
+          <div class="camp camp-website" aria-hidden="true">
+            <label for="c-website">Website</label>
+            <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+          <div class="camp camp-bifa">
+            <input id="c-consimtamant" name="consimtamant" type="checkbox" required>
+            <label for="c-consimtamant">Sunt de acord ca datele de mai sus să fie folosite doar pentru a-mi răspunde la această comandă. <a href="politica-de-confidentialitate.html">Cum le folosim</a>.</label>
+          </div>
+          <div class="butoane">
+            <button class="buton" type="submit" data-trimite>Trimite comanda</button>
+            <a class="buton buton-whatsapp" data-whatsapp-cerere href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20A%C8%99%20vrea%20o%20ofert%C4%83%20de%20catering." rel="noopener" target="_blank">Scrie pe WhatsApp</a>
+          </div>
+          <p class="mic mut">Comanda se confirmă telefonic. Nu trimitem reclame și nu dăm datele mai departe. Fără cookie-uri.</p>
+        </form>
+
+        <div class="formular-confirmare" data-confirmare hidden tabindex="-1">
+          <h3>Am primit comanda, mulțumim!</h3>
+          <p data-confirmare-text></p>
+          <p class="mic mut" data-confirmare-id></p>
+          <p>Dacă e urgent, ne găsești la <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>.</p>
+        </div>
+
+        <div class="formular-rezerva" data-rezerva hidden tabindex="-1">
+          <h3>Nu am reușit să trimitem comanda</h3>
+          <p>Nu e nimic pierdut: apasă mai jos și comanda ta, gata scrisă, pleacă pe WhatsApp. Sau sună-ne direct.</p>
+          <div class="butoane">
+            <a class="buton buton-whatsapp" data-rezerva-whatsapp href="https://wa.me/{{contact.whatsapp}}" rel="noopener" target="_blank">Trimite pe WhatsApp</a>
+            <a class="buton buton-secundar" href="tel:+4{{contact.telefon}}">Sună {{contact.telefon}}</a>
+            <button class="buton buton-secundar" type="button" data-rezerva-inapoi>Încearcă din nou</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card card-dunare">
+          <h3>Cum funcționează</h3>
+          <ol class="pasi">
+            <li>Ne spui ce fel de comandă este, pentru ce dată și pentru câte persoane.</li>
+            <li>Te sunăm, stabilim meniul și prețul; confirmi.</li>
+            <li>Gătim în ziua respectivă și livrăm la adresa și ora stabilite.</li>
+          </ol>
+          <p class="mic">Pentru evenimente mari, comanda cu cel puțin câteva zile înainte ne ajută să ne organizăm. <span class="todo">TODO-Sorin: termenul minim de comandă (evenimente, pomeni, prânz la birou)</span></p>
+        </div>
+        <div class="card sus-1">
+          <h3>Pentru evenimente mai mari</h3>
+          <p>Dacă vrei ca totul să fie la noi, cu sala, servirea și tortul incluse, vezi <a href="sala-de-bal.html">Sala de bal OK</a>.</p>
+          <p class="mic">Alergenii preparatelor: <a href="alergeni.html">pagina de alergeni</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

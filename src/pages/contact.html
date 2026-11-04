@@ -1,0 +1,79 @@
+<!-- @page
+  title: Contact și program
+  descriere: Restaurant OK Calafat: Gastro-pub OK și Cofetăria OK pe Str. A.I. Cuza nr. 26, Sala de bal OK pe Str. Traian nr. 2. Telefon 0785255855, WhatsApp, contact@restaurantok.com. Program și cum ajungi.
+  nav: contact
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">Contact</span>
+    <h1>Sună, scrie sau treci pe la noi</h1>
+    <p>Pentru rezervări, comenzi de torturi, catering și oferte pentru sală, cel mai rapid răspuns îl primești la telefon sau pe WhatsApp.</p>
+    <div class="butoane">
+      <a class="buton" href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>
+      <a class="buton buton-whatsapp" href="https://wa.me/{{contact.whatsapp}}" rel="noopener" target="_blank">WhatsApp</a>
+      <a class="buton buton-secundar" href="mailto:{{contact.email}}">{{contact.email}}</a>
+    </div>
+    <span class="deschis-acum" data-deschis-acum="gastro-pub" hidden></span>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune">
+  <div class="container">
+    <div class="grila grila-3">
+      <div class="card">
+        <span class="eticheta">Adresa</span>
+        <h2 class="titlu-card">Unde suntem</h2>
+        <address>
+          <p><strong>Gastro-pub OK și Cofetăria OK</strong><br>{{contact.adresa}}<br><span class="mic">Terasa OK, Sala Vidin și terasa din față, în centru.</span><br><a href="{{contact.harta_url}}" rel="noopener" target="_blank">Google Maps →</a></p>
+          <p><strong>Sala de bal OK</strong><br>{{contact.adresa_sala}}<br><a href="{{contact.harta_sala_url}}" rel="noopener" target="_blank">Google Maps →</a></p>
+        </address>
+      </div>
+      <div class="card">
+        <span class="eticheta">Gastro-pub OK</span>
+        <h2 class="titlu-card">Program restaurant</h2>
+        <div data-program-lista="gastro-pub">
+          <p>Programul: sună la <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>.</p>
+        </div>
+      </div>
+      <div class="card">
+        <span class="eticheta">Cofetăria OK</span>
+        <h2 class="titlu-card">Program cofetărie</h2>
+        <div data-program-lista="cofetaria">
+          <p>Programul: sună la <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>.</p>
+        </div>
+        <p class="mic mut sus-1">Sala de bal OK și Sala Vidin: după programul evenimentelor, la cerere.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">Cum ajungi</span>
+        <h2>Din Calafat, din țară, de peste Dunăre</h2>
+        <p>Calafatul este pe DN56, la capătul românesc al podului Calafat–Vidin, și pe traseul cicloturistic EuroVelo 6. Restaurantul și cofetăria sunt în centru, pe strada A.I. Cuza; sala de bal, pe strada Traian, în curtea Liceului „Ștefan Milcu". Rutele exacte: <a href="{{contact.harta_url}}" rel="noopener" target="_blank">restaurantul</a> · <a href="{{contact.harta_sala_url}}" rel="noopener" target="_blank">sala de bal</a>.</p>
+        <p class="mic"><span class="todo">TODO-Sorin: repere (ce e în apropiere), parcare, acces pentru cărucior / persoane cu mobilitate redusă</span></p>
+      </div>
+      <div>
+        <span class="eticheta">Pe scurt</span>
+        <h2>Pentru ce ne cauți</h2>
+        <ul class="fapte">
+          <li><b>Masă</b><span>Rezervări la restaurant: telefon sau WhatsApp.</span></li>
+          <li><b>Tort</b><span>Comenzi la <a href="cofetaria.html">Cofetăria OK</a>, cu câteva zile înainte.</span></li>
+          <li><b>Sală</b><span>Oferte pentru <a href="sala-de-bal.html">Sala de bal OK</a>: data, numărul de invitați, tipul evenimentului.</span></li>
+          <li><b>Catering</b><span>Evenimente, pomeni, prânz la birou: <a href="catering.html">catering</a>.</span></li>
+        </ul>
+        <p class="mic mut">Ne găsești și pe <a href="{{contact.facebook}}" rel="noopener" target="_blank">Facebook</a>, unde postăm zilnic meniul zilei.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

@@ -1,0 +1,834 @@
+{
+  "name": "OK · cereri de pe site (M2–M4, M8)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "site-cerere",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://restaurantok.com,https://www.restaurantok.com",
+          "ignoreBots": true,
+          "rawBody": false
+        }
+      },
+      "id": "m2c-01",
+      "name": "Webhook site-cerere",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        300
+      ],
+      "webhookId": "<<TODO: se generează la import>>",
+      "notes": "URL public: https://hooks.restaurantok.com/webhook/site-cerere (prin tunelul cloudflared de pe orca, doar calea /webhook/). allowedOrigins răspunde la preflight-ul CORS al browserului."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "site_token",
+              "type": "string",
+              "value": "<<TODO: același text ca în src/partials/head.html, meta ok-webhook-token>>"
+            },
+            {
+              "id": "a2",
+              "name": "telegram_chat_id",
+              "type": "string",
+              "value": "<<TODO: chat ID-ul lui Sorin>>"
+            },
+            {
+              "id": "a3",
+              "name": "email_expeditor",
+              "type": "string",
+              "value": "contact@restaurantok.com"
+            },
+            {
+              "id": "a4",
+              "name": "email_copie",
+              "type": "string",
+              "value": "contact@restaurantok.com"
+            },
+            {
+              "id": "a5",
+              "name": "origine_permisa",
+              "type": "string",
+              "value": "https://restaurantok.com"
+            },
+            {
+              "id": "a6",
+              "name": "site_url",
+              "type": "string",
+              "value": "https://restaurantok.com"
+            },
+            {
+              "id": "a7",
+              "name": "telefon_afisat",
+              "type": "string",
+              "value": "0785255855"
+            },
+            {
+              "id": "a8",
+              "name": "adresa_afisata",
+              "type": "string",
+              "value": "Str. A.I. Cuza nr. 26, Calafat, Dolj"
+            },
+            {
+              "id": "a9",
+              "name": "fus_orar",
+              "type": "string",
+              "value": "Europe/Bucharest"
+            },
+            {
+              "id": "a10",
+              "name": "director_poze",
+              "type": "string",
+              "value": "/home/node/.n8n/poze-model"
+            },
+            {
+              "id": "a11",
+              "name": "whatsapp",
+              "type": "string",
+              "value": "nu"
+            },
+            {
+              "id": "a12",
+              "name": "whatsapp_phone_number_id",
+              "type": "string",
+              "value": "<<TODO: Phone number ID (Meta → WhatsApp → API Setup); nu e numărul de telefon>>"
+            },
+            {
+              "id": "a13",
+              "name": "whatsapp_sorin",
+              "type": "string",
+              "value": "<<TODO: numărul lui Sorin, format internațional fără +, ex. 407xxxxxxxx>>"
+            },
+            {
+              "id": "a14",
+              "name": "whatsapp_sablon_sorin",
+              "type": "string",
+              "value": "cerere_noua"
+            },
+            {
+              "id": "a15",
+              "name": "whatsapp_sablon_client",
+              "type": "string",
+              "value": "confirmare_cerere"
+            },
+            {
+              "id": "a16",
+              "name": "whatsapp_limba",
+              "type": "string",
+              "value": "ro"
+            },
+            {
+              "id": "a17",
+              "name": "whatsapp_api_url",
+              "type": "string",
+              "value": "https://graph.facebook.com/v21.0"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "m2c-02",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        300
+      ],
+      "notes": "Singurul loc de configurat. Token-ul din site este public (stă în HTML), deci e doar un filtru pentru roboți generici; protecția reală: rate limit în Cloudflare + honeypot. M8: whatsapp = nu | sorin | sorin+client; cât e „nu\" sau Phone number ID e <<TODO>>, ramura WhatsApp e sărită."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nod Code „Validează cererea\" (workflow site-cerere, M2; M3 adaugă tipul catering, M4 tipul tort cu poza-model). Rulează în n8n (sandbox: fără require).\n// Intrare: item-ul produs de nodul Webhook + Config: { headers, body, ... , site_token, origine_permisa, ... }\n// Ieșire (un singur item):\n//   ok: true  → cererea e bună: cerere (normalizată), id, telegram (HTML), email_subiect, email_text, rand (pentru Postgres), raspuns {ok:true,id}, status 200\n//   ok: false → status + raspuns {ok:false, eroare} ; pentru honeypot/token greșit `tacut: true` (răspundem ca și cum ar fi mers, fără notificare)\n// Regulile sunt aceleași ca în site (src/assets/js/site.js → validareCerere), ca browserul și serverul să respingă aceleași lucruri.\nconst cfg = $('Config').first().json;\nconst item = $input.first().json;\nconst headers = item.headers || {};\nconst b = (item.body && typeof item.body === 'object') ? item.body : {};\n\nconst TIPURI = { sala: 'Sala de bal', catering: 'Catering', tort: 'Tort', rezervare: 'Rezervare' };\nconst TIP_EVENIMENT = { nunta: 'Nuntă / cununie', botez: 'Botez / cumetrie', aniversare: 'Aniversare / majorat', 'masa-festiva': 'Masă festivă', firma: 'Petrecere de firmă / conferință', pomana: 'Pomană / parastas', altul: 'Altceva' };\n// M3: tipurile de comandă de catering (aceleași chei ca în site: TIPURI_CATERING) și felul livrării\nconst TIP_COMANDA = { eveniment: 'Catering pentru eveniment', pomana: 'Pachete pentru pomană / parastas', 'pranz-birou': 'Prânz la birou' };\nconst LIVRARE = { adresa: 'Livrare la adresă', ridicare: 'Ridicare de la restaurant' };\nconst SALI = { 'sala-de-bal': 'Sala de bal OK (Str. Traian nr. 2)', 'sala-vidin': 'Sala Vidin (la restaurant)' };\nconst LUNI = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];\nconst ZILE = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'];\n\nconst text = (v, max) => String(v == null ? '' : v).replace(/[\\u0000-\\u0008\\u000B-\\u001F\\u007F]/g, '').trim().slice(0, max || 200);\nconst esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst ziValida = d => /^\\d{4}-\\d{2}-\\d{2}$/.test(d) && !isNaN(Date.parse(d + 'T00:00:00Z'));\nconst telefonValid = t => /^(\\+40|0040|0)?[237]\\d{8}$/.test(String(t || '').replace(/[\\s.\\-()]/g, ''));\nconst emailValid = e => !e || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(e);\nconst dataLunga = iso => { const p = iso.split('-'); const d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); return ZILE[d.getUTCDay()] + ', ' + (+p[2]) + ' ' + LUNI[+p[1] - 1] + ' ' + p[0]; };\nconst aziRo = () => { const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: cfg.fus_orar || 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()).forEach(x => { p[x.type] = x.value; }); return `${p.year}-${p.month}-${p.day}`; };\nconst acumIso = () => { const d = new Date(); const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: cfg.fus_orar || 'Europe/Bucharest', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'longOffset' }).formatToParts(d).forEach(x => { p[x.type] = x.value; }); const off = (p.timeZoneName || 'GMT+00:00').replace('GMT', '') || '+00:00'; return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${off.length === 6 ? off : '+00:00'}`; };\n\nconst tacut = (motiv) => [{ json: { ok: false, tacut: true, motiv, status: 200, raspuns: { ok: true, id: 'x-' + Date.now().toString(36) } } }];\nconst respinge = (eroare, status) => [{ json: { ok: false, status: status || 400, raspuns: { ok: false, eroare } } }];\n\n// 1. filtrele anti-spam: honeypot-ul trebuie să fie gol; token-ul din header trebuie să fie cel din site\nif (typeof b.website === 'string' && b.website.trim() !== '') return tacut('honeypot completat');\nif (cfg.site_token && !/<<TODO/.test(cfg.site_token) && String(headers['x-site-token'] || '') !== String(cfg.site_token)) return tacut('token greșit');\n\n// 2. validarea câmpurilor\nconst tip = text(b.tip, 20);\nif (!TIPURI[tip]) return respinge('tip necunoscut');\nconst c = {\n  tip, nume: text(b.nume, 80), telefon: text(b.telefon, 30), email: text(b.email, 120).toLowerCase(),\n  data_eveniment: text(b.data_eveniment, 10), persoane: parseInt(b.persoane, 10) || 0, mesaj: text(b.mesaj, 1500),\n  detalii: (b.detalii && typeof b.detalii === 'object' && !Array.isArray(b.detalii)) ? b.detalii : {},\n  consimtamant: b.consimtamant === true, pagina: text(b.pagina, 120)\n};\nconst erori = [];\nif (c.nume.length < 2) erori.push('nume');\nif (!telefonValid(c.telefon)) erori.push('telefon');\nif (!emailValid(c.email)) erori.push('email');\nif (!c.consimtamant) erori.push('consimtamant');\nif (tip === 'sala' || tip === 'catering' || tip === 'tort') {\n  if (!ziValida(c.data_eveniment)) erori.push('data_eveniment');\n  else if (c.data_eveniment < aziRo()) erori.push('data_eveniment');\n  if (!(c.persoane >= 1 && c.persoane <= 999)) erori.push('persoane');\n}\n// M3: detaliile comenzii de catering (tip_comanda, livrare + adresa, ora), normalizate; aceleași reguli ca în site\nlet cat = null;\nif (tip === 'sala') { // spațiul dorit (opțional): sala de bal de pe Traian sau Sala Vidin de la restaurant\n  const d = c.detalii, sala = SALI[d.sala] ? d.sala : '';\n  c.detalii = { tip_eveniment: text(d.tip_eveniment, 20), tip_eveniment_text: TIP_EVENIMENT[d.tip_eveniment] || text(d.tip_eveniment_text, 60), sala, sala_text: SALI[sala] || '' };\n}\nif (tip === 'catering') {\n  const d = c.detalii;\n  cat = { tip_comanda: text(d.tip_comanda, 20), livrare: d.livrare === 'ridicare' ? 'ridicare' : 'adresa', adresa: text(d.adresa, 200), ora: text(d.ora, 5) };\n  cat.tip_comanda_text = TIP_COMANDA[cat.tip_comanda] || ''; cat.livrare_text = LIVRARE[cat.livrare];\n  if (cat.livrare === 'ridicare') cat.adresa = '';\n  if (!TIP_COMANDA[cat.tip_comanda]) erori.push('tip_comanda');\n  if (cat.livrare === 'adresa' && cat.adresa.length < 5) erori.push('adresa');\n  if (cat.ora && !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(cat.ora)) erori.push('ora');\n  c.detalii = cat;\n}\n// M4: comanda de tort — tortul ales (id din data/torturi.json sau „personalizat\") și poza-model (base64, redimensionată în browser)\nlet tort = null, pozaBase64 = '';\nif (tip === 'tort') {\n  const d = c.detalii, pm = d.poza_model && typeof d.poza_model === 'object' ? d.poza_model : null;\n  tort = { tort: text(d.tort, 40), tort_text: text(d.tort_text, 80), poza_model: null };\n  if (!tort.tort) erori.push('tort');\n  if (!tort.tort_text) tort.tort_text = tort.tort;\n  if (pm) {\n    const b64 = typeof pm.base64 === 'string' ? pm.base64.replace(/\\s+/g, '') : '';\n    const tipPoza = /^image\\/(jpeg|png|webp|heic|heif|gif)$/.test(String(pm.tip || '')) ? String(pm.tip) : 'image/jpeg';\n    if (b64.length > 8 * 1024 * 1024 || !/^[A-Za-z0-9+/=]+$/.test(b64)) erori.push('poza_model'); // ≤ ~6 MB decodat\n    else if (b64) { pozaBase64 = b64; tort.poza_model = { nume: text(pm.nume, 80) || 'model', tip: tipPoza, marime: Math.round(b64.length * 3 / 4), latime: parseInt(pm.latime, 10) || 0, inaltime: parseInt(pm.inaltime, 10) || 0 }; }\n  }\n  c.detalii = tort; // fără base64: în Postgres și pe Telegram ajung doar metadatele; poza pleacă separat (binar)\n}\nif (erori.length) return respinge('câmpuri invalide: ' + erori.join(', '));\n\n// 3. id-ul cererii: <tip>-<AAAALLZZ>-<4 caractere>; apare în confirmare, pe Telegram, în email și în Postgres\nconst id = `${tip}-${aziRo().replace(/-/g, '')}-${Math.random().toString(36).slice(2, 6)}`;\nconst tipEv = TIP_EVENIMENT[c.detalii.tip_eveniment] || text(c.detalii.tip_eveniment_text, 60) || '';\nconst telefonCurat = c.telefon.replace(/[\\s.\\-()]/g, '');\nconst ip = text(headers['cf-connecting-ip'] || headers['x-forwarded-for'] || '', 60).split(',')[0];\n\n// 4. textele: Telegram (HTML) către Sorin, email de confirmare către client\nconst pranz = cat && cat.tip_comanda === 'pranz-birou', pomana = cat && cat.tip_comanda === 'pomana';\nconst etData = pranz ? 'De la' : tort ? 'Pentru' : 'Data', etPersoane = pranz ? 'Porții pe zi' : pomana ? 'Pachete' : 'Persoane';\nconst randuri = [`<b>${cat || tort ? 'Comandă nouă' : 'Cerere nouă'} · ${TIPURI[tip]}</b> <code>${id}</code>`];\nif (tort) randuri.push(`Tort: ${esc(tort.tort_text)}`, tort.poza_model ? `Model: poza vine în mesajul următor (${esc(tort.poza_model.nume)}, ${Math.round(tort.poza_model.marime / 1024)} KB)` : 'Model: fără poză');\nif (tipEv) randuri.push(`Eveniment: ${esc(tipEv)}`);\nif (tip === 'sala') randuri.push(`Spațiul: ${esc(c.detalii.sala_text || 'nu a ales (de recomandat: Sala de bal sau Sala Vidin)')}`);\nif (cat) randuri.push(`Comandă: ${esc(cat.tip_comanda_text)}`);\nif (c.data_eveniment) randuri.push(`${etData}: ${esc(dataLunga(c.data_eveniment))}${cat && cat.ora ? ', ora ' + esc(cat.ora) : ''}`);\nif (c.persoane) randuri.push(`${etPersoane}: ${c.persoane}`);\nif (cat) randuri.push(cat.livrare === 'ridicare' ? 'Ridicare de la restaurant' : `Livrare la: ${esc(cat.adresa)}`);\nranduri.push(`Nume: ${esc(c.nume)}`);\nranduri.push(`Telefon: <a href=\"tel:+4${telefonCurat.replace(/^(\\+40|0040)/, '0')}\">${esc(c.telefon)}</a>`);\nif (c.email) randuri.push(`Email: ${esc(c.email)}`);\nif (c.mesaj) randuri.push('', `<i>${esc(c.mesaj)}</i>`);\nranduri.push('', `Sună înapoi: <a href=\"https://wa.me/${telefonCurat.replace(/^(\\+40|0040|0)/, '40')}\">WhatsApp</a> · ${esc(c.pagina || '')}`);\nconst telegram = randuri.join('\\n');\n\nconst prenume = c.nume.split(/\\s+/)[0];\n// șablonul de email, per tip (M2 sala, M3 catering: eveniment / pomană / prânz la birou; M4 adaugă tort)\nconst SABLOANE = {\n  sala: { subiect: `Am primit cererea ta pentru Sala de bal OK (${id})`,\n    intro: `Am primit cererea ta de ofertă pentru ${tipEv ? tipEv.toLowerCase() : 'eveniment'}${c.data_eveniment ? ', ' + dataLunga(c.data_eveniment) : ''}${c.persoane ? ', ' + c.persoane + ' persoane' : ''}.`,\n    urmeaza: `Te sunăm la ${c.telefon} cu o ofertă, de obicei în aceeași zi lucrătoare.` },\n  catering: { subiect: `Am primit comanda ta de catering (${id})`,\n    intro: pranz ? `Am primit comanda ta de prânz la birou: ${c.persoane} porții pe zi, de ${c.data_eveniment ? dataLunga(c.data_eveniment) : ''} încolo${cat && cat.livrare === 'adresa' ? ', livrate la ' + cat.adresa : ', cu ridicare de la restaurant'}${cat && cat.ora ? ', în jurul orei ' + cat.ora : ''}.`\n      : pomana ? `Am primit comanda ta de ${c.persoane} pachete pentru pomană / parastas, ${c.data_eveniment ? dataLunga(c.data_eveniment) : ''}${cat && cat.livrare === 'adresa' ? ', cu livrare la ' + cat.adresa : ', cu ridicare de la restaurant'}${cat && cat.ora ? ', la ora ' + cat.ora : ''}.`\n      : `Am primit cererea ta de catering pentru ${c.persoane} persoane, ${c.data_eveniment ? dataLunga(c.data_eveniment) : ''}${cat && cat.livrare === 'adresa' ? ', cu livrare la ' + cat.adresa : ', cu ridicare de la restaurant'}${cat && cat.ora ? ', la ora ' + cat.ora : ''}.`,\n    urmeaza: pranz ? `Te sunăm la ${c.telefon} ca să stabilim meniul săptămânii și ora livrării. Prețul porției este cel al meniului zilei.`\n      : pomana ? `Te sunăm la ${c.telefon} ca să stabilim conținutul pachetelor și prețul. Condoleanțe din partea noastră.`\n      : `Te sunăm la ${c.telefon} ca să stabilim meniul și prețul, de obicei în aceeași zi lucrătoare.` }\n};\nSABLOANE.tort = { subiect: `Am primit comanda ta de tort (${id})`,\n  intro: `Am primit comanda ta: ${tort ? tort.tort_text.toLowerCase() : 'tort'}, pentru ${c.data_eveniment ? dataLunga(c.data_eveniment) : ''}, ${c.persoane} persoane${tort && tort.poza_model ? ', după modelul din poza trimisă' : ''}.`,\n  urmeaza: `Te sunăm la ${c.telefon} ca să stabilim greutatea, decorul, prețul și ora la care îl ridici de la cofetărie.` };\nconst sablon = SABLOANE[tip] || { subiect: `Am primit cererea ta (${id})`, intro: `Am primit cererea ta (${TIPURI[tip].toLowerCase()}).`, urmeaza: `Te sunăm la ${c.telefon} cu un răspuns, de obicei în aceeași zi lucrătoare.` };\nconst subiect = sablon.subiect;\nconst emailText = [\n  `Bună, ${prenume}!`, '',\n  sablon.intro,\n  sablon.urmeaza, '',\n  c.mesaj ? `Ce ne-ai scris: „${c.mesaj}\"` : '', c.mesaj ? '' : '',\n  `Dacă e urgent, ne găsești la ${cfg.telefon_afisat || '0785255855'}.`, '',\n  'Restaurant OK Calafat', cfg.adresa_afisata || 'Str. A.I. Cuza nr. 26, Calafat', cfg.site_url || 'https://restaurantok.com', '',\n  `Numărul cererii: ${id}. Datele tale le folosim doar ca să-ți răspundem la această cerere.`\n].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\\n');\n\n// 5. rândul pentru Postgres (tabelul `cereri`, vezi n8n/sql/cereri.sql)\nconst rand = {\n  id, tip, nume: c.nume, telefon: c.telefon, email: c.email || null, data_eveniment: c.data_eveniment || null,\n  persoane: c.persoane || null, mesaj: c.mesaj || null, detalii: JSON.stringify(c.detalii), pagina: c.pagina || null,\n  ip: ip || null, user_agent: text(headers['user-agent'], 300) || null, creat: acumIso()\n};\n\nreturn [{ json: { ok: true, status: 200, id, cerere: c, are_email: !!c.email, are_poza: !!pozaBase64, poza_base64: pozaBase64 || undefined,\n  poza_nume: pozaBase64 ? `${id}-${(tort.poza_model.nume || 'model').replace(/[^A-Za-z0-9._-]+/g, '_')}` : undefined, poza_tip: pozaBase64 ? tort.poza_model.tip : undefined,\n  telegram, email_subiect: subiect, email_text: emailText, rand, raspuns: { ok: true, id } } }];\n"
+      },
+      "id": "m2c-03",
+      "name": "Validează cererea",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m2c-04",
+      "name": "Este validă?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        40,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Config').first().json.telegram_chat_id }}",
+        "text": "={{ $json.telegram }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "m2c-05",
+      "name": "Anunță pe Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        280,
+        200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Dacă Telegram cade, cererea tot ajunge în Postgres și clientul primește confirmarea."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "p1",
+              "leftValue": "={{ $('Validează cererea').first().json.are_poza }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m2c-06",
+      "name": "Are poză?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nod Code „Pregătește poza-model\" (workflow site-cerere, M4). Rulează în n8n (sandbox: fără require; Buffer și this.helpers sunt disponibile).\n// Intrare: item-ul de la „Validează cererea\" (are_poza = true): poza_base64, poza_nume, poza_tip, id.\n// Ieșire: un item cu proprietatea binară `poza` (pentru Telegram sendPhoto și pentru scrierea pe disc) + json { id, nume_fisier, legenda }.\nconst v = $('Validează cererea').first().json;\nif (!v.are_poza || !v.poza_base64) return [];\nconst buffer = Buffer.from(v.poza_base64, 'base64');\nconst numeFisier = v.poza_nume || `${v.id}-model.jpg`;\nconst binar = await this.helpers.prepareBinaryData(buffer, numeFisier, v.poza_tip || 'image/jpeg');\nconst c = v.cerere || {};\nconst legenda = `Model tort · ${v.id}\\n${c.detalii && c.detalii.tort_text ? c.detalii.tort_text + ' · ' : ''}${c.persoane ? c.persoane + ' persoane · ' : ''}${c.data_eveniment || ''}\\n${c.nume || ''} · ${c.telefon || ''}`;\nreturn [{ json: { id: v.id, nume_fisier: numeFisier, marime: buffer.length, legenda }, binary: { poza: binar } }];\n"
+      },
+      "id": "m2c-07",
+      "name": "Pregătește poza",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Config').first().json.telegram_chat_id }}",
+        "binaryData": true,
+        "binaryPropertyName": "poza",
+        "additionalFields": {
+          "caption": "={{ $json.legenda }}",
+          "appendAttribution": false
+        }
+      },
+      "id": "m2c-08",
+      "name": "Trimite poza pe Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1000,
+        420
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Poza-model ajunge la Sorin imediat după mesajul cu comanda."
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $('Config').first().json.director_poze + '/' + $('Pregătește poza').first().json.nume_fisier }}",
+        "dataPropertyName": "poza",
+        "options": {}
+      },
+      "id": "m2c-09",
+      "name": "Salvează poza pe orca",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        420
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Directorul (Config.director_poze) trebuie să existe în containerul n8n și să fie montat ca volum (vezi README). Dacă scrierea eșuează, fluxul continuă: poza a ajuns deja pe Telegram."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e1",
+              "leftValue": "={{ $('Validează cererea').first().json.are_email }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m2c-10",
+      "name": "Are email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.email_expeditor }}",
+        "toEmail": "={{ $('Validează cererea').first().json.cerere.email }}",
+        "subject": "={{ $('Validează cererea').first().json.email_subiect }}",
+        "emailFormat": "text",
+        "text": "={{ $('Validează cererea').first().json.email_text }}",
+        "options": {
+          "ccEmail": "={{ $('Config').first().json.email_copie }}",
+          "replyTo": "={{ $('Config').first().json.email_expeditor }}",
+          "appendAttribution": false
+        }
+      },
+      "id": "m2c-11",
+      "name": "Email de confirmare",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        760,
+        100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "<<TODO: id credențială>>",
+          "name": "SMTP contact@restaurantok.com"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Text simplu, fără HTML, de la contact@restaurantok.com; copie la restaurant. Dacă SMTP-ul nu merge, fluxul continuă."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "w1",
+              "leftValue": "={{ String($('Config').first().json.whatsapp || 'nu').trim().toLowerCase() !== 'nu' && !/<<TODO/.test(String($('Config').first().json.whatsapp_phone_number_id || '')) && !/<<TODO/.test(String($('Config').first().json.whatsapp_sorin || '')) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m2c-12",
+      "name": "Trimitem pe WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        200
+      ],
+      "notes": "Config.whatsapp = sorin | sorin+client și Phone number ID + numărul lui Sorin completate → ramura WhatsApp; altfel direct la Postgres. Telegram și emailul rămân oricum."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nod Code „Pregătește WhatsApp\" (workflow site-cerere, M8). Rulează în n8n (sandbox: fără require).\n// Intrare: item-ul curent (ignorat) + nodurile „Validează cererea\" (cererea validată) și „Config\" (whatsapp, whatsapp_phone_number_id,\n//   whatsapp_sorin, whatsapp_sablon_sorin, whatsapp_sablon_client, whatsapp_limba, whatsapp_api_url).\n// Ieșire: un item pentru fiecare mesaj de trimis prin WhatsApp Cloud API (POST {api_url}/{phone_number_id}/messages):\n//   { catre: 'sorin' | 'client', url, to, sablon, body }   — body este corpul JSON gata de trimis (mesaj de tip „template\").\n// Cine primește: Config.whatsapp = 'sorin' → doar Sorin; 'sorin+client' → Sorin și clientul (confirmarea comenzii, ca emailul);\n//   'nu' sau Phone number ID încă <<TODO>> → niciun mesaj, dar se întoarce un item { sari: true } ca fluxul să continue spre Postgres.\n// Mesajele către un număr care nu a scris businessului în ultimele 24 h trebuie să fie ȘABLOANE aprobate în WhatsApp Manager\n//   (categoria Utility); textele exacte ale celor două șabloane sunt în n8n/README.md, secțiunea „M8 — WhatsApp Business\".\n// Parametrii de șablon nu pot conține rânduri noi, taburi sau mai mult de 4 spații consecutive și nu pot fi goi (Meta refuză mesajul).\nconst cfg = $('Config').first().json;\nconst v = $('Validează cererea').first().json;\nconst c = v.cerere || {};\nconst d = c.detalii || {};\n\nconst mod = String(cfg.whatsapp || 'nu').trim().toLowerCase();\nconst phoneNumberId = String(cfg.whatsapp_phone_number_id || '').trim();\nconst apiUrl = String(cfg.whatsapp_api_url || 'https://graph.facebook.com/v21.0').replace(/\\/+$/, '');\nconst limba = String(cfg.whatsapp_limba || 'ro').trim() || 'ro';\nconst sari = (motiv) => [{ json: { sari: true, motiv } }];\nif (!v.ok || mod === 'nu' || mod === '') return sari('whatsapp dezactivat (Config.whatsapp = nu)');\nif (!phoneNumberId || /<<TODO/.test(phoneNumberId)) return sari('Config.whatsapp_phone_number_id este încă placeholder');\n\n// numere în format internațional fără „+\" (așa le cere Cloud API): 0722… → 40722…, +40… → 40…\nconst e164 = t => { const s = String(t || '').replace(/[\\s.\\-()]/g, ''); if (/^\\+?40\\d{9}$/.test(s)) return s.replace(/^\\+/, ''); if (/^0040\\d{9}$/.test(s)) return s.slice(2); if (/^0[237]\\d{8}$/.test(s)) return '4' + s; if (/^\\+\\d{8,15}$/.test(s)) return s.slice(1); return ''; };\n// text sigur pentru un parametru de șablon: fără rânduri noi/taburi, un singur spațiu între cuvinte, niciodată gol, scurt\nconst param = (s, max) => { const t = String(s == null ? '' : s).replace(/[\\r\\n\\t]+/g, ' ').replace(/ {2,}/g, ' ').trim().slice(0, max || 200); return t || '-'; };\n\nconst LUNI = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];\nconst ZILE = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'];\nconst dataLunga = iso => { if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(iso || '')) return ''; const p = iso.split('-'); const dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); return ZILE[dt.getUTCDay()] + ', ' + (+p[2]) + ' ' + LUNI[+p[1] - 1] + ' ' + p[0]; };\n\n// ce s-a cerut, pe scurt (același vocabular ca pe Telegram și în email)\nconst tip = c.tip;\nconst comanda = tip === 'catering' || tip === 'tort';\nconst pranz = tip === 'catering' && d.tip_comanda === 'pranz-birou', pomana = tip === 'catering' && d.tip_comanda === 'pomana';\nlet ce;\nif (tip === 'sala') ce = 'Sala de bal' + (d.tip_eveniment_text ? ' — ' + d.tip_eveniment_text : '') + (d.sala_text ? ' (' + d.sala_text.replace(/\\s*\\(.*\\)$/, '') + ')' : '');\nelse if (tip === 'catering') ce = 'Catering — ' + (d.tip_comanda_text || 'comandă') + (d.livrare === 'ridicare' ? ', ridicare' : d.adresa ? ', livrare la ' + d.adresa : '');\nelse if (tip === 'tort') ce = 'Tort — ' + (d.tort_text || d.tort || 'tort') + (d.poza_model ? ', cu poză-model' : '');\nelse ce = 'Rezervare';\nconst cand = [c.data_eveniment ? (pranz ? 'de ' : tip === 'tort' ? 'pentru ' : '') + dataLunga(c.data_eveniment) + (tip === 'catering' && d.ora ? ', ora ' + d.ora : '') : '',\n  c.persoane ? c.persoane + (pranz ? ' porții pe zi' : pomana ? ' pachete' : ' persoane') : ''].filter(Boolean).join(', ') || 'fără dată';\n\nconst mesaje = [];\nconst corp = (to, sablon, parametri) => ({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'template',\n  template: { name: sablon, language: { code: limba }, components: [{ type: 'body', parameters: parametri.map(t => ({ type: 'text', text: param(t) })) }] } });\nconst url = apiUrl + '/' + encodeURIComponent(phoneNumberId) + '/messages';\n\n// 1. Sorin: șablonul „cerere_noua\" cu 6 parametri — {{1}} cerere nouă/comandă nouă, {{2}} ce, {{3}} nume, {{4}} telefon, {{5}} când + câți, {{6}} id\nconst sorin = e164(cfg.whatsapp_sorin);\nif (sorin) mesaje.push({ json: { catre: 'sorin', url, to: sorin, sablon: String(cfg.whatsapp_sablon_sorin || 'cerere_noua'),\n  body: corp(sorin, String(cfg.whatsapp_sablon_sorin || 'cerere_noua'), [comanda ? 'comandă nouă' : 'cerere nouă', ce, c.nume, c.telefon, cand, v.id]) } });\n\n// 2. clientul (doar în modul sorin+client): șablonul „confirmare_cerere\" cu 4 parametri — {{1}} prenume, {{2}} ce am primit, {{3}} id, {{4}} telefonul la care sunăm\nif (mod === 'sorin+client') {\n  const client = e164(c.telefon);\n  const prenume = String(c.nume || '').split(/\\s+/)[0] || 'ziua bună';\n  const primit = tip === 'sala' ? 'cererea ta de ofertă pentru Sala de bal OK' + (c.data_eveniment ? ', ' + dataLunga(c.data_eveniment) : '')\n    : tip === 'tort' ? 'comanda ta de tort' + (d.tort_text ? ' (' + d.tort_text + ')' : '') + (c.data_eveniment ? ' pentru ' + dataLunga(c.data_eveniment) : '')\n    : pranz ? 'comanda ta de prânz la birou' + (c.data_eveniment ? ', de ' + dataLunga(c.data_eveniment) + ' încolo' : '')\n    : pomana ? 'comanda ta de pachete pentru pomană / parastas' + (c.data_eveniment ? ', ' + dataLunga(c.data_eveniment) : '')\n    : tip === 'catering' ? 'cererea ta de catering' + (c.data_eveniment ? ', ' + dataLunga(c.data_eveniment) : '') : 'cererea ta';\n  if (client && client !== sorin) mesaje.push({ json: { catre: 'client', url, to: client, sablon: String(cfg.whatsapp_sablon_client || 'confirmare_cerere'),\n    body: corp(client, String(cfg.whatsapp_sablon_client || 'confirmare_cerere'), [prenume, primit, v.id, c.telefon]) } });\n}\n\nif (!mesaje.length) return sari('niciun destinatar valid (Config.whatsapp_sorin lipsește sau e placeholder)');\nreturn mesaje;\n"
+      },
+      "id": "m2c-13",
+      "name": "Pregătește WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        100
+      ],
+      "notes": "n8n/cod/whatsapp.js: un item pe destinatar, cu corpul JSON al mesajului de tip „template\" (parametrii curățați: fără rânduri noi, niciodată goi). Șabloanele „cerere_noua\" și „confirmare_cerere\" trebuie aprobate în WhatsApp Manager (textele: n8n/README.md)."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "w2",
+              "leftValue": "={{ !$json.sari }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m2c-14",
+      "name": "Avem mesaje?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "m2c-15",
+      "name": "Trimite pe WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1720,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Meta WhatsApp token"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "POST https://graph.facebook.com/v21.0/<Phone number ID>/messages, antetul Authorization: Bearer <token> din credențiala „Meta WhatsApp token\" (Header Auth). La eroare (token expirat, șablon neaprobat, număr fără WhatsApp) fluxul continuă: cererea a ajuns deja pe Telegram și în email."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un singur item cu exact coloanele tabelului `cereri` (n8n/sql/cereri.sql), pentru maparea automată din nodul Postgres.\nreturn [{ json: $('Validează cererea').first().json.rand }];"
+      },
+      "id": "m2c-16",
+      "name": "Rândul pentru Postgres",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "cereri"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "m2c-17",
+      "name": "Salvează în Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2200,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Postgres n8n (orca)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Tabelul se creează o dată cu n8n/sql/cereri.sql. Dacă tabelul lipsește, fluxul continuă (cererea a plecat deja pe Telegram)."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Validează cererea').first().json.raspuns) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Config').first().json.origine_permisa }}"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "m2c-18",
+      "name": "Răspunde OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.raspuns) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 400 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Config').first().json.origine_permisa }}"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "m2c-19",
+      "name": "Răspunde cu eroare",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        440
+      ],
+      "notes": "Honeypot sau token greșit → tot 200 { ok: true } (roboții nu află că au fost filtrați), dar fără notificare și fără log."
+    }
+  ],
+  "connections": {
+    "Webhook site-cerere": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Validează cererea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validează cererea": {
+      "main": [
+        [
+          {
+            "node": "Este validă?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Este validă?": {
+      "main": [
+        [
+          {
+            "node": "Anunță pe Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Răspunde cu eroare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anunță pe Telegram": {
+      "main": [
+        [
+          {
+            "node": "Are poză?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Are poză?": {
+      "main": [
+        [
+          {
+            "node": "Pregătește poza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Are email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pregătește poza": {
+      "main": [
+        [
+          {
+            "node": "Trimite poza pe Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trimite poza pe Telegram": {
+      "main": [
+        [
+          {
+            "node": "Salvează poza pe orca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvează poza pe orca": {
+      "main": [
+        [
+          {
+            "node": "Are email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Are email?": {
+      "main": [
+        [
+          {
+            "node": "Email de confirmare",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trimitem pe WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email de confirmare": {
+      "main": [
+        [
+          {
+            "node": "Trimitem pe WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trimitem pe WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Pregătește WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rândul pentru Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pregătește WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Avem mesaje?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avem mesaje?": {
+      "main": [
+        [
+          {
+            "node": "Trimite pe WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rândul pentru Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trimite pe WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Rândul pentru Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rândul pentru Postgres": {
+      "main": [
+        [
+          {
+            "node": "Salvează în Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvează în Postgres": {
+      "main": [
+        [
+          {
+            "node": "Răspunde OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Bucharest",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "descriere": "POST /webhook/site-cerere (tip sala | catering | tort) → validare → Telegram (+ poza-model la tort) → email SMTP (șablon per tip) → WhatsApp Business (M8, opțional: Sorin și/sau client) → Postgres → { ok, id }. Vezi n8n/README.md."
+  }
+}

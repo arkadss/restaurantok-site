@@ -1,0 +1,22 @@
+# Configurația tunelului cloudflared „ok-hooks" (locally managed). Se montează în container la /etc/cloudflared/config.yml.
+# Două lucruri de completat la instalare (orca/README.md, „Tunelul"), restul rămâne așa:
+#   tunnel:            ID-ul tunelului, afișat de `cloudflared tunnel create ok-hooks` (UUID)
+#   credentials-file:  fișierul JSON creat de aceeași comandă, copiat în orca/cloudflared/ (NU se comite în repo)
+tunnel: "<<TODO: TUNNEL_ID>>"
+credentials-file: "/etc/cloudflared/<<TODO: TUNNEL_ID>>.json"
+
+# Fără autoupdate (imaginea Docker se actualizează prin `docker compose pull`).
+no-autoupdate: true
+
+# Regulile se evaluează în ordine; prima potrivire câștigă. Doar /webhook/* ajunge la n8n; orice altceva primește 404 de la cloudflared.
+# Astfel interfața n8n (/, /rest/*, /api/*) nu este niciodată accesibilă de pe internet, chiar dacă cineva ghicește hooks.restaurantok.com.
+ingress:
+  - hostname: hooks.restaurantok.com
+    path: ^/webhook/.*
+    # Numele containerului n8n în rețeaua Docker (docker ps → NAMES) și portul lui intern (implicit 5678).
+    service: "http://<<TODO: numele containerului n8n, ex. n8n>>:5678"
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: false
+      httpHostHeader: hooks.restaurantok.com
+  - service: http_status:404

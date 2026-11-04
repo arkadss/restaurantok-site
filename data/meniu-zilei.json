@@ -1,0 +1,25 @@
+{
+  "_exemplu": true,
+  "actualizat": "2026-10-19T11:04:00+03:00",
+  "data": "2026-10-19",
+  "valabil_pana": "2026-10-19T16:00:00+03:00",
+  "pret": 24,
+  "moneda": "lei",
+  "preparate": [
+    { "categorie": "ciorbă", "nume": "Ciorbă de perișoare", "alergeni": ["gluten", "ou", "țelină"] },
+    { "categorie": "fel principal", "nume": "Crap prăjit cu mămăligă și mujdei", "alergeni": ["pește", "gluten"] },
+    { "categorie": "garnitură", "nume": "Salată de varză", "alergeni": [] }
+  ],
+  "poze": [
+    "data/poze/2026-10-19-1.jpg"
+  ],
+  "text_facebook": "Meniul zilei, 19 octombrie: ciorbă de perișoare, crap prăjit cu mămăligă și mujdei, salată de varză. 24 lei. Comenzi: 0785255855.",
+  "traduceri": {
+    "en": {
+      "preparate": ["Meatball soup", "Fried carp with polenta and garlic sauce", "Cabbage salad"]
+    },
+    "bg": {
+      "preparate": ["Супа топчета", "Пържен шаран с качамак и чеснов сос", "Зелева салата"]
+    }
+  }
+}

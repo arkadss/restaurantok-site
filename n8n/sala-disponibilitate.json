@@ -1,0 +1,264 @@
+{
+  "name": "OK · disponibilitatea sălii (M2)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "10 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "m2s-01",
+      "name": "Zilnic 06:10",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        300
+      ],
+      "notes": "Fusul orar din setările workflow-ului: Europe/Bucharest. Poți rula și manual după ce ai schimbat ceva în calendar."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "calendar_id",
+              "type": "string",
+              "value": "<<TODO: ID-ul calendarului „Sala de bal OK\" (Setări calendar → Integrare), ex. abc123@group.calendar.google.com>>"
+            },
+            {
+              "id": "a2",
+              "name": "github_owner",
+              "type": "string",
+              "value": "<<TODO: utilizatorul/organizația GitHub>>"
+            },
+            {
+              "id": "a3",
+              "name": "github_repo",
+              "type": "string",
+              "value": "<<TODO: restaurantok-site>>"
+            },
+            {
+              "id": "a4",
+              "name": "telegram_chat_id",
+              "type": "string",
+              "value": "<<TODO: chat ID-ul lui Sorin>>"
+            },
+            {
+              "id": "a5",
+              "name": "orizont_zile",
+              "type": "number",
+              "value": 365
+            },
+            {
+              "id": "a6",
+              "name": "ore_ocupat",
+              "type": "number",
+              "value": 6
+            },
+            {
+              "id": "a7",
+              "name": "fus_orar",
+              "type": "string",
+              "value": "Europe/Bucharest"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "m2s-02",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        300
+      ],
+      "notes": "ore_ocupat: un eveniment cu ore care durează cel puțin atât marchează ziua ca ocupată; mai scurt → „parțial ocupat\". Evenimentele de o zi întreagă sunt mereu „ocupat\"."
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "getAll",
+        "returnAll": true,
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.calendar_id }}"
+        },
+        "timeMin": "={{ $now.startOf('day').toISO() }}",
+        "timeMax": "={{ $now.plus({ days: $('Config').first().json.orizont_zile }).toISO() }}",
+        "options": {
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "id": "m2s-03",
+      "name": "Citește calendarul",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -180,
+        300
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Google Calendar OK"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "singleEvents desface evenimentele recurente în apariții. alwaysOutputData: calendarul gol produce tot un item, ca fișierul să se actualizeze."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nod Code „Calculează disponibilitatea\" (workflow sala-disponibilitate, M2). Rulează în n8n (sandbox: fără require).\n// Intrare: toate evenimentele din calendarul Google „Sala de bal OK\" pentru următoarele `orizont_zile` zile\n//   (nodul Google Calendar, getAll, singleEvents) — câte un item per eveniment; sau niciun item când calendarul e gol.\n// Ieșire (un singur item): continut (JSON-ul pentru data/sala-disponibilitate.json), commit (mesajul), ocupate, partiale\n// Reguli:\n//   - eveniment de o zi întreagă (start.date) → zi „ocupat\"\n//   - eveniment cu ore: durata ≥ Config.ore_ocupat (implicit 6) → „ocupat\"; altfel „parțial\" cu nota „ocupat HH:MM–HH:MM\"\n//   - un eveniment care trece peste miezul nopții ocupă fiecare zi atinsă\n//   - evenimentele anulate (status cancelled) și cele „liber\" (transparency transparent) se ignoră\n//   - titlul NU ajunge pe site (ar fi numele clienților): JSON-ul conține doar date și note generice\nconst cfg = $('Config').first().json;\nconst FUS = cfg.fus_orar || 'Europe/Bucharest';\nconst ORE_OCUPAT = Number(cfg.ore_ocupat) > 0 ? Number(cfg.ore_ocupat) : 6;\nconst ORIZONT = Number(cfg.orizont_zile) > 0 ? Number(cfg.orizont_zile) : 365;\n\nfunction parti(d) { const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: FUS, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'longOffset' }).formatToParts(d).forEach(x => { p[x.type] = x.value; }); return p; }\nfunction ziLocala(d) { const p = parti(d); return `${p.year}-${p.month}-${p.day}`; }\nfunction oraLocala(d) { const p = parti(d); return `${p.hour}:${p.minute}`; }\nfunction acumIso() { const p = parti(new Date()); const off = (p.timeZoneName || '').replace('GMT', ''); return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${/^[+-]\\d{2}:\\d{2}$/.test(off) ? off : '+00:00'}`; }\nfunction ziPlus(iso, n) { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }\n\nconst azi = ziLocala(new Date());\nconst ultima = ziPlus(azi, ORIZONT);\nconst ocupat = new Set();\nconst partial = {}; // zi → [note]\n\nfor (const item of $input.all()) {\n  const e = item.json || {};\n  if (!e.start || e.status === 'cancelled' || e.transparency === 'transparent') continue;\n  if (e.start.date) { // toată ziua (end.date este exclusiv)\n    let z = e.start.date; const sfarsit = (e.end && e.end.date) || ziPlus(z, 1);\n    for (let i = 0; z < sfarsit && i < 60; i++, z = ziPlus(z, 1)) if (z >= azi && z <= ultima) ocupat.add(z);\n    continue;\n  }\n  const a = new Date(e.start.dateTime), b = new Date((e.end && e.end.dateTime) || e.start.dateTime);\n  if (isNaN(a) || isNaN(b)) continue;\n  const ore = (b - a) / 36e5;\n  const ziA = ziLocala(a), ziB = ziLocala(new Date(b.getTime() - 1));\n  if (ore >= ORE_OCUPAT) {\n    for (let z = ziA, i = 0; z <= ziB && i < 60; i++, z = ziPlus(z, 1)) if (z >= azi && z <= ultima) ocupat.add(z);\n  } else {\n    for (let z = ziA, i = 0; z <= ziB && i < 60; i++, z = ziPlus(z, 1)) {\n      if (z < azi || z > ultima) continue;\n      const nota = z === ziA && z === ziB ? `ocupat ${oraLocala(a)}–${oraLocala(b)}` : z === ziA ? `ocupat de la ${oraLocala(a)}` : `ocupat până la ${oraLocala(b)}`;\n      (partial[z] = partial[z] || []).push(nota);\n    }\n  }\n}\nfor (const z of ocupat) delete partial[z];\n\nconst json = {\n  actualizat: acumIso(), fus_orar: FUS, orizont_zile: ORIZONT, sursa: 'Google Calendar „Sala de bal OK\"',\n  ocupat: [...ocupat].sort(),\n  partial: Object.keys(partial).sort().map(z => ({ data: z, nota: partial[z].join('; ') }))\n};\nreturn [{ json: {\n  continut: JSON.stringify(json, null, 2) + '\\n',\n  commit: `data: sala-disponibilitate.json ${azi}`,\n  ocupate: json.ocupat.length, partiale: json.partial.length,\n  rezumat: `Calendarul sălii: ${json.ocupat.length} zile ocupate, ${json.partial.length} parțial, orizont ${ORIZONT} zile.`\n} }];\n"
+      },
+      "id": "m2s-04",
+      "name": "Calculează disponibilitatea",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "data/sala-disponibilitate.json",
+        "fileContent": "={{ $json.continut }}",
+        "commitMessage": "={{ $json.commit }}"
+      },
+      "id": "m2s-05",
+      "name": "Scrie sala-disponibilitate.json",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        280,
+        300
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "Operația „edit\" cere ca fișierul să existe deja în repo (exemplul din data/ e de ajuns). Ieșirea de eroare merge la Telegram."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Config').first().json.telegram_chat_id }}",
+        "text": "=⚠️ Calendarul sălii nu s-a putut publica pe site: {{ $json.error ? ($json.error.message || JSON.stringify($json.error)) : \"eroare necunoscută\" }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "m2s-06",
+      "name": "Anunță eroarea",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        420
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      },
+      "notes": "Doar la eroare. Rularea reușită nu trimite nimic (ar fi un mesaj pe zi degeaba)."
+    }
+  ],
+  "connections": {
+    "Zilnic 06:10": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Citește calendarul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Citește calendarul": {
+      "main": [
+        [
+          {
+            "node": "Calculează disponibilitatea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculează disponibilitatea": {
+      "main": [
+        [
+          {
+            "node": "Scrie sala-disponibilitate.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrie sala-disponibilitate.json": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Anunță eroarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Bucharest",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "descriere": "Zilnic: Google Calendar „Sala de bal OK\" → data/sala-disponibilitate.json → commit GitHub → Cloudflare Pages. Vezi n8n/README.md."
+  }
+}

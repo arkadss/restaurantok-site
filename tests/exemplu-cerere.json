@@ -1,0 +1,13 @@
+{
+  "tip": "sala",
+  "nume": "Ion Popescu",
+  "telefon": "0722 123 456",
+  "email": "ion@exemplu.ro",
+  "data_eveniment": "2027-06-12",
+  "persoane": 120,
+  "mesaj": "Ora 18, meniu cu pește. Cerere de TEST, se poate ignora.",
+  "detalii": { "tip_eveniment": "nunta", "tip_eveniment_text": "Nuntă / cununie" },
+  "consimtamant": true,
+  "website": "",
+  "pagina": "/sala-de-bal"
+}

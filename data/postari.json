@@ -1,0 +1,12 @@
+{
+  "_exemplu": true,
+  "_nota": "Exemplu. Scris de n8n (workflow postari-facebook, zilnic) din Facebook Graph API, pagina OkCalafat. Site-ul ascunde secțiunea dacă `actualizat` are peste 14 zile. TODO-Sorin: Page access token long-lived (vezi n8n/README.md, M5).",
+  "actualizat": "2026-10-19T07:00:00+03:00",
+  "sursa": "Facebook Graph API, pagina OkCalafat",
+  "url_pagina": "https://www.facebook.com/OkCalafat",
+  "postari": [
+    { "id": "1", "data": "2026-10-18T11:10:00+03:00", "text": "Meniul zilei de sâmbătă: ciorbă de burtă, sarmale cu mămăligă, salată. 24 lei. Comenzi: 0785255855.", "poza": "data/poze/post-1.jpg", "url": "https://www.facebook.com/OkCalafat" },
+    { "id": "2", "data": "2026-10-16T18:30:00+03:00", "text": "Vineri seară: muzică live pe Terasa OK de la ora 20. Acoperișul e tras, ploaia nu ne oprește.", "poza": null, "url": "https://www.facebook.com/OkCalafat" },
+    { "id": "3", "data": "2026-10-14T09:00:00+03:00", "text": "Torturi personalizate pentru majorate: trimiteți-ne poza cu modelul și data, vă răspundem cu prețul în aceeași zi.", "poza": null, "url": "https://www.facebook.com/OkCalafat" }
+  ]
+}

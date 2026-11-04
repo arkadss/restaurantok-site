@@ -1,0 +1,39 @@
+# cloudflared pe orca — tunelul prin care formularele site-ului ajung la n8n (M7).
+#
+#   hooks.restaurantok.com/webhook/*  →  Cloudflare  →  (tunel, doar conexiune OUTBOUND din orca)  →  containerul n8n:5678
+#
+# Nimic nu se expune public pe orca: cloudflared deschide el conexiunea spre Cloudflare. Doar calea /webhook/* trece
+# (vezi cloudflared/config.yml); interfața n8n rămâne accesibilă numai prin Tailscale.
+#
+# Pornire (după pașii din orca/README.md, secțiunea „Tunelul"):
+#   cd orca && cp .env.exemplu .env && nano .env        # N8N_NETWORK = rețeaua Docker a stack-ului n8n (docker network ls)
+#   docker compose -f docker-compose.cloudflared.yml up -d
+#   docker compose -f docker-compose.cloudflared.yml logs -f cloudflared     # „Registered tunnel connection" × 4 = merge
+#
+# Fișierele din ./cloudflared/ (config.yml din repo + <TUNNEL_ID>.json creat de `cloudflared tunnel create`) NU se
+# comit în repo: credențialele tunelului sunt secret; .gitignore exclude orca/cloudflared/*.json și orca/.env.
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ok-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    networks:
+      - n8n
+    # Fără porturi publicate: tunelul este doar outbound. Starea se vede în loguri (imaginea nu are shell pentru healthcheck).
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+networks:
+  n8n:
+    # Rețeaua în care rulează deja containerul n8n (docker network ls; de obicei <numele-directorului-stack-ului>_default).
+    external: true
+    name: ${N8N_NETWORK:?Scrie N8N_NETWORK în orca/.env (vezi .env.exemplu)}

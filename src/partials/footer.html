@@ -1,0 +1,44 @@
+</main>
+<footer class="subsol">
+  <div class="subsol-grila">
+    <div class="subsol-brand">
+      <img src="{{radacina}}assets/img/logo-ok-alb.png" width="160" height="92" alt="{{t.sigla_alt}}" loading="lazy">
+      <p>{{t.subsol_slogan}}</p>
+    </div>
+    <div>
+      <h2 class="subsol-titlu">{{t.unde}}</h2>
+      <address>
+        <strong>{{t.restaurant_si_cofetarie}}</strong><br>
+        {{contact.adresa}}<br>
+        <a href="{{contact.harta_url}}" rel="noopener" target="_blank">{{t.maps}}</a>
+      </address>
+      <address class="sus-1">
+        <strong>{{t.sala_de_bal}}</strong><br>
+        {{contact.adresa_sala}}<br>
+        <a href="{{contact.harta_sala_url}}" rel="noopener" target="_blank">{{t.maps}}</a>
+      </address>
+    </div>
+    <div>
+      <h2 class="subsol-titlu">{{t.contact}}</h2>
+      <p>
+        <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a><br>
+        <a href="https://wa.me/{{contact.whatsapp}}" rel="noopener" target="_blank">WhatsApp</a><br>
+        <a href="mailto:{{contact.email}}">{{contact.email}}</a><br>
+        <a href="{{contact.facebook}}" rel="noopener" target="_blank">Facebook</a>
+      </p>
+    </div>
+    <div>
+      <h2 class="subsol-titlu">{{t.program}}</h2>
+      <div class="program-lista" data-program-lista="gastro-pub">
+        <p class="program-fallback">{{t.program_fallback}} <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="subsol-legal">
+    <p>© {{an}} SC Sorlir Impex SRL · Gastro-pub OK · Cofetăria OK · Sala de bal OK</p>
+    <p><a href="{{radacina}}alergeni.html"{{lang_ro|raw}}>{{t.alergeni}}</a> · <a href="{{radacina}}politica-de-confidentialitate.html"{{lang_ro|raw}}>{{t.confidentialitate}}</a> · {{t.fara_cookie}}</p>
+    {{nota_traducere|raw}}
+  </div>
+</footer>
+</body>
+</html>

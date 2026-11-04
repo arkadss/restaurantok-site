@@ -1,0 +1,79 @@
+<!-- @page
+  title: Contact and opening hours
+  descriere: Restaurant OK Calafat, Romania: Gastro-pub OK and Cofetăria OK at A.I. Cuza St. 26, the OK Ballroom at Traian St. 2. Phone +40785255855, WhatsApp, contact@restaurantok.com. Opening hours and how to get here from the Calafat–Vidin bridge.
+  nav: contact
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">Contact</span>
+    <h1>Call, write or drop by</h1>
+    <p>For table bookings, cake orders, catering and ballroom quotes, the quickest answer is by phone or WhatsApp.</p>
+    <div class="butoane">
+      <a class="buton" href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>
+      <a class="buton buton-whatsapp" href="https://wa.me/{{contact.whatsapp}}?text=Hello!" rel="noopener" target="_blank">WhatsApp</a>
+      <a class="buton buton-secundar" href="mailto:{{contact.email}}">{{contact.email}}</a>
+    </div>
+    <span class="deschis-acum" data-deschis-acum="gastro-pub" hidden></span>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune">
+  <div class="container">
+    <div class="grila grila-3">
+      <div class="card">
+        <span class="eticheta">Address</span>
+        <h2 class="titlu-card">Where we are</h2>
+        <address>
+          <p><strong>Gastro-pub OK and Cofetăria OK</strong><br>{{contact.adresa}}<br><span class="mic">Terasa OK, the Vidin Room and the front terrace, in the town centre.</span><br><a href="{{contact.harta_url}}" rel="noopener" target="_blank">Google Maps →</a></p>
+          <p><strong>OK Ballroom</strong><br>Traian St. 2, Calafat (in the courtyard of the “Ștefan Milcu” high school)<br><a href="{{contact.harta_sala_url}}" rel="noopener" target="_blank">Google Maps →</a></p>
+        </address>
+      </div>
+      <div class="card">
+        <span class="eticheta">Gastro-pub OK</span>
+        <h2 class="titlu-card">Restaurant hours</h2>
+        <div data-program-lista="gastro-pub">
+          <p>Opening hours: call <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>.</p>
+        </div>
+      </div>
+      <div class="card">
+        <span class="eticheta">Cofetăria OK</span>
+        <h2 class="titlu-card">Pastry shop hours</h2>
+        <div data-program-lista="cofetaria">
+          <p>Opening hours: call <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>.</p>
+        </div>
+        <p class="mic mut sus-1">The OK Ballroom and the Vidin Room: according to the events schedule, on request.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">How to get here</span>
+        <h2>From the bridge, from the road, from the river</h2>
+        <p>Calafat is on the DN56 road, at the Romanian end of the Calafat–Vidin bridge over the Danube (Bulgaria is on the other bank), and on the EuroVelo 6 cycling route. The restaurant and the pastry shop are in the centre, on A.I. Cuza Street; the ballroom is on Traian Street, in the courtyard of the “Ștefan Milcu” high school. Exact routes: <a href="{{contact.harta_url}}" rel="noopener" target="_blank">the restaurant</a> · <a href="{{contact.harta_sala_url}}" rel="noopener" target="_blank">the ballroom</a>.</p>
+        <p class="mic"><span class="todo">TODO-Sorin: landmarks nearby, parking, step-free access; which languages staff can answer in</span></p>
+      </div>
+      <div>
+        <span class="eticheta">In short</span>
+        <h2>What you can ask us for</h2>
+        <ul class="fapte">
+          <li><b>Table</b><span>Restaurant bookings: phone or WhatsApp.</span></li>
+          <li><b>Cake</b><span>Orders at <a href="../cofetaria.html" hreflang="ro">Cofetăria OK</a>, a few days in advance.</span></li>
+          <li><b>Ballroom</b><span>Quotes for the <a href="../sala-de-bal.html" hreflang="ro">OK Ballroom</a>: date, number of guests, kind of event.</span></li>
+          <li><b>Catering</b><span>Events, memorial meals, office lunch: <a href="../catering.html" hreflang="ro">catering</a>.</span></li>
+        </ul>
+        <p class="mic mut">Pages marked RO are in Romanian. You can also find us on <a href="{{contact.facebook}}" rel="noopener" target="_blank">Facebook</a>, where we post the menu of the day.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

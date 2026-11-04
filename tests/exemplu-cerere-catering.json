@@ -1,0 +1,13 @@
+{
+  "tip": "catering",
+  "nume": "Firma Exemplu SRL",
+  "telefon": "0722 123 456",
+  "email": "office@exemplu.ro",
+  "data_eveniment": "2026-11-02",
+  "persoane": 12,
+  "mesaj": "Fără carne de porc pentru doi colegi.",
+  "detalii": { "tip_comanda": "pranz-birou", "livrare": "adresa", "adresa": "Str. Traian nr. 10, Calafat", "ora": "12:30" },
+  "consimtamant": true,
+  "website": "",
+  "pagina": "/catering"
+}

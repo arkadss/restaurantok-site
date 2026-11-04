@@ -1,0 +1,23 @@
+{
+  "_exemplu": true,
+  "_nota": "Exemplu. Ofertele reale (prețuri, număr minim de persoane) și meniul săptămânii se completează de Sorin sau se scriu de n8n. Site-ul ascunde meniul săptămânii dacă `actualizat` are peste 14 zile sau dacă toate zilele au trecut.",
+  "actualizat": "2026-10-19T08:00:00+03:00",
+  "fus_orar": "Europe/Bucharest",
+  "oferte": [
+    { "id": "evenimente", "nume": "Catering evenimente", "descriere": "Bufet sau meniu servit, la locația ta, pentru 20–300 de persoane.", "pret_de_la": null, "per": "persoană", "_nota": "TODO-Sorin: preț orientativ/persoană, număr minim de persoane" },
+    { "id": "pomeni", "nume": "Pomeni și parastase", "descriere": "Meniu tradițional, pachete pregătite, livrare la biserică sau acasă.", "pret_de_la": null, "per": "pachet", "_nota": "TODO-Sorin: conținutul pachetului standard și prețul" },
+    { "id": "pranz-birou", "nume": "Prânz la birou", "descriere": "Meniul zilei livrat la firmă sau instituție, comandă săptămânală.", "pret_de_la": 24, "per": "porție" }
+  ],
+  "meniu_saptamana": {
+    "saptamana": "2026-10-19",
+    "pret": 24,
+    "moneda": "lei",
+    "zile": [
+      { "data": "2026-10-19", "preparate": ["Ciorbă de perișoare", "Crap prăjit cu mămăligă și mujdei", "Salată de varză"] },
+      { "data": "2026-10-20", "preparate": ["Ciorbă de legume", "Pui la cuptor cu cartofi", "Murături"] },
+      { "data": "2026-10-21", "preparate": ["Ciorbă de burtă", "Sarmale cu mămăligă", "Ardei iute"] },
+      { "data": "2026-10-22", "preparate": ["Supă de pui cu tăiței", "Șnițel de porc cu piure", "Salată de sfeclă"] },
+      { "data": "2026-10-23", "preparate": ["Ciorbă de fasole", "Pește prăjit cu cartofi", "Salată verde"] }
+    ]
+  }
+}

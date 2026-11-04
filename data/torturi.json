@@ -1,0 +1,15 @@
+{
+  "_exemplu": true,
+  "_nota": "Catalog de exemplu. TODO-Sorin: lista reală de torturi, prețurile pe kg / bucată, pozele reale (assets/img/torturi/<id>.jpg, max 1200 px) și termenul minim de comandă. Fișierul se scrie manual (M4); nu are prag de vechime.",
+  "actualizat": "2026-10-21T18:30:00+03:00",
+  "termen_minim_zile": 3,
+  "moneda": "lei",
+  "torturi": [
+    { "id": "diplomat", "nume": "Tort Diplomat", "poza": "assets/img/TODO-poza.svg", "pret_de_la": null, "per": "kg", "descriere": "Blat de pandișpan, cremă de vanilie cu frișcă și fructe.", "alergeni": ["gluten", "ou", "lapte"], "_nota": "TODO-Sorin: preț/kg" },
+    { "id": "ciocolata", "nume": "Tort de ciocolată", "poza": "assets/img/TODO-poza.svg", "pret_de_la": null, "per": "kg", "descriere": "Blat de cacao, cremă ganache, glazură de ciocolată.", "alergeni": ["gluten", "ou", "lapte", "soia"], "_nota": "TODO-Sorin: preț/kg" },
+    { "id": "fructe", "nume": "Tort cu fructe", "poza": "assets/img/TODO-poza.svg", "pret_de_la": null, "per": "kg", "descriere": "Blat alb, cremă de iaurt sau mascarpone, fructe proaspete de sezon.", "alergeni": ["gluten", "ou", "lapte"], "_nota": "TODO-Sorin: preț/kg" },
+    { "id": "nunta", "nume": "Tort de nuntă / botez", "poza": "assets/img/TODO-poza.svg", "pret_de_la": null, "per": "kg", "descriere": "Pe etaje sau pe un singur nivel, decorat după tema evenimentului. Îl aducem noi în Sala de bal OK.", "alergeni": ["gluten", "ou", "lapte"], "termen_minim_zile": 7, "_nota": "TODO-Sorin: preț/kg și termen" },
+    { "id": "personalizat", "nume": "Tort personalizat, după model", "poza": "assets/img/TODO-poza.svg", "pret_de_la": null, "per": "kg", "descriere": "Trimiți o poză cu modelul dorit (personaje, temă, mesaj) și îl facem după ea.", "alergeni": [], "termen_minim_zile": 5, "_nota": "TODO-Sorin: preț/kg" },
+    { "id": "prajituri", "nume": "Prăjituri de casă", "poza": "assets/img/TODO-poza.svg", "pret_de_la": null, "per": "bucată", "descriere": "Amandine, savarine, ecler, prăjituri cu cremă — la bucată sau pe platou, pentru acasă, birou sau pomeni.", "alergeni": ["gluten", "ou", "lapte"], "_nota": "TODO-Sorin: lista reală de prăjituri și prețul pe bucată" }
+  ]
+}

@@ -1,0 +1,79 @@
+<!-- @page
+  title: Контакти и работно време
+  descriere: Ресторант OK Калафат, Румъния: Гастро-пъб OK и сладкарница OK на ул. A.I. Cuza 26, Бална зала OK на ул. Traian 2. Телефон +40785255855, WhatsApp, contact@restaurantok.com. Работно време и как да стигнете от Дунав мост Видин–Калафат.
+  nav: contact
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">Контакти</span>
+    <h1>Обадете се, пишете или минете при нас</h1>
+    <p>За резервации на маса, поръчки на торти, кетъринг и оферти за залата най-бързо ще получите отговор по телефона или в WhatsApp.</p>
+    <div class="butoane">
+      <a class="buton" href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>
+      <a class="buton buton-whatsapp" href="https://wa.me/{{contact.whatsapp}}?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D0%B5%D0%B9%D1%82%D0%B5!" rel="noopener" target="_blank">WhatsApp</a>
+      <a class="buton buton-secundar" href="mailto:{{contact.email}}">{{contact.email}}</a>
+    </div>
+    <span class="deschis-acum" data-deschis-acum="gastro-pub" hidden></span>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune">
+  <div class="container">
+    <div class="grila grila-3">
+      <div class="card">
+        <span class="eticheta">Адрес</span>
+        <h2 class="titlu-card">Къде сме</h2>
+        <address>
+          <p><strong>Гастро-пъб OK и сладкарница OK</strong><br>{{contact.adresa}}<br><span class="mic">Terasa OK, зала „Видин“ и предната тераса, в центъра.</span><br><a href="{{contact.harta_url}}" rel="noopener" target="_blank">Google Maps →</a></p>
+          <p><strong>Бална зала OK</strong><br>ул. Traian 2, Калафат (в двора на гимназия „Ștefan Milcu“)<br><a href="{{contact.harta_sala_url}}" rel="noopener" target="_blank">Google Maps →</a></p>
+        </address>
+      </div>
+      <div class="card">
+        <span class="eticheta">Гастро-пъб OK</span>
+        <h2 class="titlu-card">Работно време на ресторанта</h2>
+        <div data-program-lista="gastro-pub">
+          <p>Работно време: обадете се на <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>.</p>
+        </div>
+      </div>
+      <div class="card">
+        <span class="eticheta">Сладкарница OK</span>
+        <h2 class="titlu-card">Работно време на сладкарницата</h2>
+        <div data-program-lista="cofetaria">
+          <p>Работно време: обадете се на <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>.</p>
+        </div>
+        <p class="mic mut sus-1">Бална зала OK и зала „Видин“: според програмата на събитията, по заявка.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">Как да стигнете</span>
+        <h2>От моста, от пътя, от реката</h2>
+        <p>Калафат е на път DN56, на румънския край на Дунав мост Видин–Калафат (срещу Видин), и на велосипедния маршрут EuroVelo 6. Ресторантът и сладкарницата са в центъра, на ул. A.I. Cuza; балната зала е на ул. Traian, в двора на гимназия „Ștefan Milcu“. Точни маршрути: <a href="{{contact.harta_url}}" rel="noopener" target="_blank">ресторантът</a> · <a href="{{contact.harta_sala_url}}" rel="noopener" target="_blank">балната зала</a>.</p>
+        <p class="mic"><span class="todo">TODO-Sorin: ориентири наблизо, паркинг, достъп без стъпала; на кои езици може да отговаря персоналът</span></p>
+      </div>
+      <div>
+        <span class="eticheta">Накратко</span>
+        <h2>За какво можете да ни потърсите</h2>
+        <ul class="fapte">
+          <li><b>Маса</b><span>Резервации в ресторанта: по телефон или WhatsApp.</span></li>
+          <li><b>Торта</b><span>Поръчки в <a href="../cofetaria.html" hreflang="ro">сладкарница OK</a>, няколко дни предварително.</span></li>
+          <li><b>Зала</b><span>Оферти за <a href="../sala-de-bal.html" hreflang="ro">Бална зала OK</a>: дата, брой гости, вид на събитието.</span></li>
+          <li><b>Кетъринг</b><span>Събития, помени, обяд в офиса: <a href="../catering.html" hreflang="ro">кетъринг</a>.</span></li>
+        </ul>
+        <p class="mic mut">Страниците, отбелязани с RO, са на румънски. Ще ни намерите и във <a href="{{contact.facebook}}" rel="noopener" target="_blank">Facebook</a>, където публикуваме менюто на деня.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

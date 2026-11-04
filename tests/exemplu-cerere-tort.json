@@ -1,0 +1,24 @@
+{
+  "tip": "tort",
+  "nume": "Maria Ionescu",
+  "telefon": "0722 123 456",
+  "email": "maria@exemplu.ro",
+  "data_eveniment": "2026-11-07",
+  "persoane": 12,
+  "mesaj": "Mesaj pe tort: La mulți ani, Ana!",
+  "detalii": {
+    "tort": "personalizat",
+    "tort_text": "Tort personalizat, după model",
+    "poza_model": {
+      "nume": "model.jpg",
+      "tip": "image/jpeg",
+      "marime": 70,
+      "latime": 1,
+      "inaltime": 1,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+    }
+  },
+  "consimtamant": true,
+  "website": "",
+  "pagina": "/cofetaria"
+}

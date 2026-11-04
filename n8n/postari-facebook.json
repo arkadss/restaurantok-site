@@ -1,0 +1,503 @@
+{
+  "name": "OK · postări Facebook (M5)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "m5p-01",
+      "name": "Zilnic 07:05",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -860,
+        300
+      ],
+      "notes": "Fusul orar din setările workflow-ului: Europe/Bucharest. Poți rula și manual după o postare importantă."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "page_id",
+              "type": "string",
+              "value": "<<TODO: ID-ul numeric al paginii OkCalafat (vezi README, M5)>>"
+            },
+            {
+              "id": "a2",
+              "name": "github_owner",
+              "type": "string",
+              "value": "<<TODO: utilizatorul/organizația GitHub>>"
+            },
+            {
+              "id": "a3",
+              "name": "github_repo",
+              "type": "string",
+              "value": "<<TODO: restaurantok-site>>"
+            },
+            {
+              "id": "a4",
+              "name": "telegram_chat_id",
+              "type": "string",
+              "value": "<<TODO: chat ID-ul lui Sorin>>"
+            },
+            {
+              "id": "a5",
+              "name": "url_pagina",
+              "type": "string",
+              "value": "https://www.facebook.com/OkCalafat"
+            },
+            {
+              "id": "a6",
+              "name": "max_postari",
+              "type": "number",
+              "value": 3
+            },
+            {
+              "id": "a7",
+              "name": "graph_versiune",
+              "type": "string",
+              "value": "v21.0"
+            },
+            {
+              "id": "a8",
+              "name": "fus_orar",
+              "type": "string",
+              "value": "Europe/Bucharest"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "m5p-02",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -640,
+        300
+      ],
+      "notes": "Token-ul paginii NU stă aici: e în credențiala „Meta Page token\" (Query Auth, parametrul access_token) a nodului HTTP."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/' + $('Config').first().json.graph_versiune + '/' + $('Config').first().json.page_id + '/posts' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "message,full_picture,permalink_url,created_time"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "m5p-03",
+      "name": "Citește postările",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -420,
+        300
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Meta Page token"
+        }
+      },
+      "notes": "Permisiuni necesare pe token: pages_read_engagement, pages_show_list (și pages_read_user_content pentru pagini noi)."
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "data/postari.json",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "id": "m5p-04",
+      "name": "Citește JSON curent",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        300
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Ca să știm ce poze sunt deja în repo. Dacă fișierul lipsește, continuă (toate pozele sunt „noi\")."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nod Code „Transformă postările\" (workflow postari-facebook, M5). Rulează în n8n (sandbox: fără require).\n// Intrare: răspunsul nodului HTTP „Citește postările\" — Graph API /{page-id}/posts?fields=message,full_picture,permalink_url,created_time:\n//   { data: [{ id, message, full_picture, permalink_url, created_time }] }\n// Citește și JSON-ul curent din repo ($('Citește JSON curent'): `content` base64, sau eroare dacă lipsește) ca să știe ce poze sunt deja urcate:\n//   pozele de pe Facebook (full_picture) sunt URL-uri semnate care expiră, așa că se descarcă o singură dată și se țin în repo la data/poze/post-<id>.jpg.\n// Ieșire (un singur item): continut (JSON-ul pentru data/postari.json), commit, poze_noi: [{ id, url, cale }], are_poze_noi, rezumat.\n// Reguli: cel mult 3 postări, cele mai noi primele; doar postări cu text sau poză; textul tăiat la 1000 de caractere; fără postări → eroare (nu scriem gol).\nconst cfg = $('Config').first().json;\nconst FUS = cfg.fus_orar || 'Europe/Bucharest';\nconst MAX = Number(cfg.max_postari) > 0 ? Number(cfg.max_postari) : 3;\nconst raspuns = $('Citește postările').first().json || {}; // nodul primește ca intrare „Citește JSON curent”, răspunsul HTTP îl ia direct de la nodul lui\nconst lista = Array.isArray(raspuns.data) ? raspuns.data : [];\n\nfunction acumIso() { const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: FUS, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'longOffset' }).formatToParts(new Date()).forEach(x => { p[x.type] = x.value; }); const off = (p.timeZoneName || '').replace('GMT', ''); return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${/^[+-]\\d{2}:\\d{2}$/.test(off) ? off : '+00:00'}`; }\nconst curat = s => String(s || '').replace(/[\\u0000-\\u0008\\u000B-\\u001F\\u007F]/g, '').replace(/[ \\t]+/g, ' ').replace(/\\n{3,}/g, '\\n\\n').trim().slice(0, 1000);\nconst idScurt = id => String(id || '').replace(/[^0-9A-Za-z_-]/g, '').split('_').pop() || String(Date.now()); // „<page>_<post>\" → „<post>\"\n\nlet existent = null;\ntry { const g = $('Citește JSON curent').first().json; if (g && g.content) existent = JSON.parse(Buffer.from(String(g.content).replace(/\\n/g, ''), 'base64').toString('utf8')); } catch (e) { existent = null; }\nconst pozeExistente = new Set(((existent && Array.isArray(existent.postari)) ? existent.postari : []).filter(p => p && p.poza).map(p => String(p.poza)));\n\nconst pozeNoi = [];\nconst postari = lista.filter(p => p && (curat(p.message) || p.full_picture)).map(p => {\n  const id = idScurt(p.id);\n  const cale = p.full_picture ? `data/poze/post-${id}.jpg` : null;\n  if (cale && !pozeExistente.has(cale)) pozeNoi.push({ id, url: String(p.full_picture), cale });\n  return { id, data: new Date(Date.parse(p.created_time || '') || Date.now()).toISOString(), text: curat(p.message), poza: cale, url: String(p.permalink_url || cfg.url_pagina || '') };\n}).sort((a, b) => Date.parse(b.data) - Date.parse(a.data)).slice(0, MAX);\n\nif (!postari.length) throw new Error('Facebook nu a întors nicio postare cu text sau poză — verifică Page ID-ul, token-ul (permisiunea pages_read_engagement) și câmpurile cerute.');\nconst idsPastrate = new Set(postari.map(p => p.id));\nconst pozeDeUrcat = pozeNoi.filter(z => idsPastrate.has(z.id));\n\nconst json = { actualizat: acumIso(), sursa: 'Facebook Graph API, pagina OkCalafat', url_pagina: String(cfg.url_pagina || 'https://www.facebook.com/OkCalafat'), postari };\nreturn [{ json: {\n  continut: JSON.stringify(json, null, 2) + '\\n',\n  commit: `data: postari.json ${json.actualizat.slice(0, 10)}`,\n  poze_noi: pozeDeUrcat, are_poze_noi: pozeDeUrcat.length > 0,\n  rezumat: `Postări Facebook: ${postari.length} publicate pe site, ${pozeDeUrcat.length} poze noi de urcat.`\n} }];\n"
+      },
+      "id": "m5p-05",
+      "name": "Transformă postările",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20,
+        300
+      ],
+      "notes": "Primește răspunsul HTTP prin $('Citește postările') și JSON-ul curent prin $('Citește JSON curent')."
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "data/postari.json",
+        "fileContent": "={{ $json.continut }}",
+        "commitMessage": "={{ $json.commit }}"
+      },
+      "id": "m5p-06",
+      "name": "Scrie postari.json",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "Operația „edit\" cere ca fișierul să existe deja în repo (exemplul din data/ e de ajuns)."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "p1",
+              "leftValue": "={{ $('Transformă postările').first().json.are_poze_noi }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m5p-07",
+      "name": "Are poze noi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "poze_noi",
+        "options": {}
+      },
+      "id": "m5p-08",
+      "name": "Desfă pozele",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        720,
+        200
+      ],
+      "notes": "Un item per poză nouă: { id, url, cale }."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "m5p-09",
+      "name": "Descarcă poza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "URL-ul semnat de Facebook; dacă a expirat între timp, item-ul trece mai departe fără binar și „Urcă poza\" îl sare."
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "width": 1200,
+        "height": 1200,
+        "resizeOption": "onlyIfLarger",
+        "options": {
+          "format": "jpeg",
+          "quality": 82
+        }
+      },
+      "id": "m5p-10",
+      "name": "Redimensionează",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Max 1200 px pe latura mare, JPEG 82%."
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "create",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "={{ $('Desfă pozele').item.json.cale }}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "commitMessage": "=data: poză postare {{ $('Desfă pozele').item.json.cale }}"
+      },
+      "id": "m5p-11",
+      "name": "Urcă poza",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        200
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Dacă fișierul există deja (rulare repetată), GitHub răspunde 422 și item-ul trece mai departe."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Config').first().json.telegram_chat_id }}",
+        "text": "=⚠️ Postările de pe Facebook nu s-au putut publica pe site: {{ $json.error ? ($json.error.message || JSON.stringify($json.error)) : \"eroare necunoscută\" }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "m5p-12",
+      "name": "Anunță eroarea",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        460
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      },
+      "notes": "Doar la eroare. Dacă rămâne fără actualizare 14 zile, site-ul ascunde singur secțiunea."
+    }
+  ],
+  "connections": {
+    "Zilnic 07:05": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Citește postările",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Citește postările": {
+      "main": [
+        [
+          {
+            "node": "Citește JSON curent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Citește JSON curent": {
+      "main": [
+        [
+          {
+            "node": "Transformă postările",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transformă postările": {
+      "main": [
+        [
+          {
+            "node": "Scrie postari.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrie postari.json": {
+      "main": [
+        [
+          {
+            "node": "Are poze noi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Anunță eroarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Are poze noi?": {
+      "main": [
+        [
+          {
+            "node": "Desfă pozele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desfă pozele": {
+      "main": [
+        [
+          {
+            "node": "Descarcă poza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descarcă poza": {
+      "main": [
+        [
+          {
+            "node": "Redimensionează",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redimensionează": {
+      "main": [
+        [
+          {
+            "node": "Urcă poza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Bucharest",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "descriere": "Zilnic: Facebook Graph API → data/postari.json + data/poze/post-<id>.jpg → commit GitHub → Cloudflare Pages. Vezi n8n/README.md."
+  }
+}

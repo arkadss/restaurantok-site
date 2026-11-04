@@ -1,0 +1,9 @@
+dist/
+node_modules/
+tests/capturi/
+.DS_Store
+# orca: secretele instalării rămân pe server, nu în repo
+orca/.env
+orca/cloudflared/*.json
+orca/cloudflared/cert.pem
+orca/*.log

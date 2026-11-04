@@ -1,0 +1,121 @@
+{
+  "_nota": "Programul restaurantului este cel real (Sorin, 21 oct 2026): 8:30–23:30, duminica de la 9:30; seara, dacă e lume, se rămâne deschis și după 23:30 (00:00–00:30). Programul cofetăriei este încă EXEMPLU (unitatea are _exemplu: true) — TODO-Sorin. Adresele: Gastro-pub OK (Terasa OK, Sala Vidin, terasa mică) și Cofetăria OK pe A.I. Cuza 26; Sala de bal OK pe Traian 2.",
+  "actualizat": "2026-10-21T21:30:00+03:00",
+  "fus_orar": "Europe/Bucharest",
+  "unitati": {
+    "gastro-pub": {
+      "nume": "Gastro-pub OK",
+      "orar": {
+        "luni": [
+          [
+            "08:30",
+            "23:30"
+          ]
+        ],
+        "marti": [
+          [
+            "08:30",
+            "23:30"
+          ]
+        ],
+        "miercuri": [
+          [
+            "08:30",
+            "23:30"
+          ]
+        ],
+        "joi": [
+          [
+            "08:30",
+            "23:30"
+          ]
+        ],
+        "vineri": [
+          [
+            "08:30",
+            "23:30"
+          ]
+        ],
+        "sambata": [
+          [
+            "08:30",
+            "23:30"
+          ]
+        ],
+        "duminica": [
+          [
+            "09:30",
+            "23:30"
+          ]
+        ]
+      },
+      "nota": "Seara, dacă mai e lume, rămânem deschiși și după 23:30."
+    },
+    "cofetaria": {
+      "nume": "Cofetăria OK",
+      "orar": {
+        "luni": [
+          [
+            "09:00",
+            "20:00"
+          ]
+        ],
+        "marti": [
+          [
+            "09:00",
+            "20:00"
+          ]
+        ],
+        "miercuri": [
+          [
+            "09:00",
+            "20:00"
+          ]
+        ],
+        "joi": [
+          [
+            "09:00",
+            "20:00"
+          ]
+        ],
+        "vineri": [
+          [
+            "09:00",
+            "20:00"
+          ]
+        ],
+        "sambata": [
+          [
+            "09:00",
+            "20:00"
+          ]
+        ],
+        "duminica": []
+      },
+      "_exemplu": true,
+      "_nota": "TODO-Sorin: programul real al cofetăriei (cel de mai jos e exemplu)."
+    },
+    "sala-de-bal": {
+      "nume": "Sala de bal OK",
+      "adresa": "Str. Traian nr. 2, Calafat",
+      "orar_nota": "după programul evenimentelor, la cerere"
+    }
+  },
+  "exceptii": [],
+  "contact": {
+    "telefon": "0785255855",
+    "whatsapp": "40785255855",
+    "email": "contact@restaurantok.com",
+    "adresa": "Str. A.I. Cuza nr. 26, Calafat, Dolj",
+    "harta_url": "https://www.google.com/maps/place/?q=place_id:ChIJh_Ql7G16U0cRS6gH1eRpkXQ",
+    "facebook": "https://www.facebook.com/OkCalafat",
+    "adresa_sala": "Str. Traian nr. 2, Calafat (în curtea Liceului „Ștefan Milcu\")",
+    "harta_sala_url": "https://www.google.com/maps/place/?q=place_id:ChIJUTLVbPp7U0cRm8XEqzEZbms",
+    "place_id": "ChIJh_Ql7G16U0cRS6gH1eRpkXQ",
+    "place_id_sala": "ChIJUTLVbPp7U0cRm8XEqzEZbms"
+  },
+  "site": {
+    "cloudflare_analytics_token": "TODO-Sorin",
+    "_nota": "Token-ul Cloudflare Web Analytics (nu e secret). Cât este TODO, build.js nu pune snippetul în pagini."
+  }
+}

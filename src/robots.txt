@@ -1,0 +1,5 @@
+# restaurantok.com
+User-agent: *
+Allow: /
+Disallow: /404
+Sitemap: https://restaurantok.com/sitemap.xml

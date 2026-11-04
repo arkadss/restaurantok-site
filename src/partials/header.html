@@ -1,0 +1,30 @@
+<header class="antet">
+  <div class="antet-rand">
+    <a class="sigla" href="{{nav_href_acasa}}" aria-label="{{t.acasa_aria}}">
+      <img src="{{radacina}}assets/img/logo-ok.png" width="240" height="138" alt="{{t.sigla_alt}}">
+    </a>
+    <div class="antet-actiuni">
+      <span class="deschis-acum" data-deschis-acum="gastro-pub" hidden></span>
+      <a class="buton buton-telefon" href="tel:+4{{contact.telefon}}" aria-label="{{t.suna_aria}}">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8z"/></svg>
+        <span>{{contact.telefon}}</span>
+      </a>
+      <button class="meniu-buton" type="button" aria-expanded="false" aria-controls="meniu-principal">
+        <span class="meniu-buton-linii" aria-hidden="true"></span>
+        <span>{{t.meniu}}</span>
+      </button>
+    </div>
+  </div>
+  <nav id="meniu-principal" class="meniu" aria-label="{{t.nav_aria}}">
+    <ul>
+      <li><a class="{{nav_class_gastro}}" href="{{nav_href_gastro}}"{{nav_lang_gastro|raw}}>{{t.nav_gastro}}</a></li>
+      <li><a class="{{nav_class_cofetaria}}" href="{{nav_href_cofetaria}}"{{nav_lang_cofetaria|raw}}>{{t.nav_cofetaria}}</a></li>
+      <li><a class="{{nav_class_sala}}" href="{{nav_href_sala}}"{{nav_lang_sala|raw}}>{{t.nav_sala}}</a></li>
+      <li><a class="{{nav_class_catering}}" href="{{nav_href_catering}}"{{nav_lang_catering|raw}}>{{t.nav_catering}}</a></li>
+      <li><a class="{{nav_class_despre}}" href="{{nav_href_despre}}"{{nav_lang_despre|raw}}>{{t.nav_despre}}</a></li>
+      <li><a class="{{nav_class_contact}}" href="{{nav_href_contact}}"{{nav_lang_contact|raw}}>{{t.nav_contact}}</a></li>
+      {{limbi|raw}}
+    </ul>
+  </nav>
+</header>
+<main id="continut">

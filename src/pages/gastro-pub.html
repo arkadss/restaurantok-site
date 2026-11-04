@@ -1,0 +1,149 @@
+<!-- @page
+  title: Gastro-pub OK — restaurantul
+  descriere: Gastro-pub OK, restaurantul din Calafat deschis din 1993: Terasa OK cu acoperiș retractabil, Sala Vidin pentru grupuri de până la 35 de persoane, meniul zilei 24 lei, pub seara. Str. A.I. Cuza nr. 26. Telefon 0785255855.
+  nav: gastro-pub
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">Restaurantul</span>
+    <h1>Gastro-pub OK</h1>
+    <p>Locul de unde a pornit totul în 1993, în centrul Calafatului. La prânz, meniul zilei; seara, bucătărie românească și un pahar la bar, pe Terasa OK, în aer liber pe orice vreme.</p>
+    <div class="butoane">
+      <a class="buton" href="tel:+4{{contact.telefon}}">Rezervă&nbsp;o&nbsp;masă:&nbsp;{{contact.telefon}}</a>
+      <a class="buton buton-secundar" href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20A%C8%99%20vrea%20s%C4%83%20rezerv%20o%20mas%C4%83%20la%20Gastro-pub%20OK." rel="noopener" target="_blank">Scrie pe WhatsApp</a>
+    </div>
+    <span class="deschis-acum" data-deschis-acum="gastro-pub" hidden></span>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune" id="spatii">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Unde stai la masă</span>
+      <h2>Terasa, sala și colțul de cafea</h2>
+      <p>Toate trei sunt la aceeași adresă, Str. A.I. Cuza nr. 26, în centru. Cauți totemul „Gastro-pub OK" din fața localului.</p>
+    </div>
+    <div class="grila grila-3">
+      <div class="card">
+        <div class="card-poza"><img src="assets/img/gastro-pub/terasa-majorat.jpg" alt="Majorat pe Terasa OK, seara, văzut de sus: tortul pe masă, cifra luminoasă și invitații în jurul sărbătoritei" loading="lazy" width="1400" height="1361"></div>
+        <h3>Terasa OK</h3>
+        <p>Spațiul principal al restaurantului: în aer liber, cu acoperiș retractabil și adăpost de vânt. Nu te plouă, nu te bate soarele, iar seara de vară se lungește cât vrei tu.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: Sala Vidin aranjată</span></div>
+        <h3>Sala Vidin</h3>
+        <p>Vechiul restaurant de iarnă, azi sală pentru grupuri de până la 35 de persoane: aniversări, pomeni, mese de firmă, întâlniri în familie. Se închiriază și separat.</p>
+        <a class="buton buton-secundar" href="sala-de-bal.html#cerere">Cere ofertă pentru Sala Vidin</a>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: terasa mică din față</span></div>
+        <h3>Terasa din față</h3>
+        <p>16–20 de locuri chiar la stradă. Din primăvară până în toamnă, soarele de dimineață o încălzește ușor: locul cel mai bun pentru cafeaua de dimineață.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="meniul-zilei">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">Gătit în fiecare dimineață</span>
+        <h2>Meniul zilei: 24 lei</h2>
+        <p>Trei feluri gătite în dimineața aceea: ciorbă, fel principal și garnitură. Se schimbă zilnic și îl anunțăm în fiecare dimineață pe <a href="{{contact.facebook}}" rel="noopener" target="_blank">pagina de Facebook</a>.</p>
+        <!-- M1: componenta vie din data/meniu-zilei.json (data, preparate, alergeni, poze, buton WhatsApp precompletat).
+             Blocul data-meniu-zilei-fallback rămâne vizibil când JSON-ul lipsește, e de altă zi sau valabil_pana a trecut. -->
+        <div data-meniu-zilei data-whatsapp="{{contact.whatsapp}}">
+          <div class="nota" data-meniu-zilei-fallback>
+            <p><strong>Meniul de azi:</strong> sună la <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a> sau scrie pe <a href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20Ce%20este%20azi%20la%20meniul%20zilei%3F" rel="noopener" target="_blank">WhatsApp</a>. Poți veni la masă sau îl iei la pachet.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Prânz la birou</h3>
+        <p>Același meniu al zilei, livrat la firmă sau instituție, cu comandă săptămânală pentru echipă.</p>
+        <a class="buton buton-secundar" href="catering.html#pranz-birou">Detalii despre livrare</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="meniu">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Bucătăria</span>
+      <h2>Meniul restaurantului</h2>
+      <p>Meniul complet, cu prețuri și alergeni, va fi publicat aici. <span class="todo">TODO-Sorin: lista de preparate și prețurile curente</span></p>
+    </div>
+    <div class="grila grila-3">
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: ciorbe</span></div>
+        <h3>Ciorbe și supe</h3>
+        <p>Ciorbele casei, gătite zilnic. Lista la zi o afli la masă sau la telefon.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: fel principal</span></div>
+        <h3>Feluri principale</h3>
+        <p>Bucătărie românească, carne la grătar și pește, cu garnituri de casă.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: desert / bar</span></div>
+        <h3>Desert și bar</h3>
+        <p>Prăjiturile vin de la <a href="cofetaria.html">Cofetăria OK</a>. Barul: cafea, bere, vin și băuturi răcoritoare.</p>
+      </div>
+    </div>
+    <p class="mic mut sus-1">Informații despre alergeni: <a href="alergeni.html">pagina de alergeni</a> sau întreabă personalul.</p>
+  </div>
+</section>
+
+<section class="sectiune" id="evenimente" data-evenimente data-telefon="{{contact.telefon}}" hidden>
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Urmează</span>
+      <h2>Evenimente la OK</h2>
+    </div>
+    <div class="evenimente-lista" data-evenimente-lista></div>
+    <p class="mic mut sus-1" data-evenimente-nota></p>
+  </div>
+</section>
+
+<section class="sectiune" id="recenzii" data-recenzii hidden>
+  <div class="container">
+    <div class="recenzii-cap">
+      <div>
+        <span class="eticheta">Ce spun clienții</span>
+        <h2>Recenzii pe Google</h2>
+      </div>
+      <div class="recenzii-nota" data-recenzii-rating></div>
+    </div>
+    <div class="grila grila-3 recenzii-lista" data-recenzii-lista></div>
+    <p class="mic mut recenzii-sub"><span data-recenzii-numar></span> <a data-recenzii-link href="https://www.google.com/maps/search/Restaurant+OK+Calafat" rel="noopener" target="_blank">Lasă și tu o recenzie pe Google →</a></p>
+  </div>
+</section>
+
+<section class="sectiune" id="program">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">Când venim</span>
+        <h2>Program</h2>
+        <div data-program-lista="gastro-pub">
+          <p>Programul: sună la <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>.</p>
+        </div>
+      </div>
+      <div>
+        <h3>Unde</h3>
+        <p>{{contact.adresa}}<br><a href="{{contact.harta_url}}" rel="noopener" target="_blank">Deschide în Google Maps →</a></p>
+        <h3>Grupuri și mese festive</h3>
+        <p>Până la 35 de persoane: <a href="#spatii">Sala Vidin</a>, aici. Pentru evenimente mai mari, <a href="sala-de-bal.html">Sala de bal OK</a>, pe Str. Traian nr. 2.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

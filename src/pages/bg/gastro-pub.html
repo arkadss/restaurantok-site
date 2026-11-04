@@ -1,0 +1,123 @@
+<!-- @page
+  title: Гастро-пъб OK — ресторантът
+  descriere: Гастро-пъб OK, ресторантът в Калафат, отворен от 1993 г.: Terasa OK с прибиращ се покрив, зала „Видин“ за групи до 35 души, меню на деня 24 леи, пъб вечер. Ул. A.I. Cuza 26, Калафат, Румъния. Телефон +40785255855.
+  nav: gastro-pub
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">Ресторантът</span>
+    <h1>Гастро-пъб OK</h1>
+    <p>Мястото, откъдето започна всичко през 1993 г., в центъра на Калафат. На обяд — меню на деня; вечер — румънска кухня и по чаша на бара, на Terasa OK, на открито при всякакво време.</p>
+    <div class="butoane">
+      <a class="buton" href="tel:+4{{contact.telefon}}">Резервирай&nbsp;маса:&nbsp;+4{{contact.telefon}}</a>
+      <a class="buton buton-secundar" href="https://wa.me/{{contact.whatsapp}}?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D0%B5%D0%B9%D1%82%D0%B5!%20%D0%98%D1%81%D0%BA%D0%B0%D0%BC%20%D0%B4%D0%B0%20%D1%80%D0%B5%D0%B7%D0%B5%D1%80%D0%B2%D0%B8%D1%80%D0%B0%D0%BC%20%D0%BC%D0%B0%D1%81%D0%B0%20%D0%B2%20Gastro-pub%20OK." rel="noopener" target="_blank">Пиши в WhatsApp</a>
+    </div>
+    <span class="deschis-acum" data-deschis-acum="gastro-pub" hidden></span>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune" id="spatii">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Къде ще седнете</span>
+      <h2>Терасата, залата и кътът за кафе</h2>
+      <p>Всичките три са на един и същ адрес — ул. A.I. Cuza 26, в центъра. Търсете табелата „Gastro-pub OK“ пред заведението.</p>
+    </div>
+    <div class="grila grila-3">
+      <div class="card">
+        <div class="card-poza"><img src="../assets/img/gastro-pub/terasa-majorat.jpg" alt="Абитуриентски празник на Terasa OK вечерта, погледнат отгоре: тортата на масата, светеща цифра и гостите около рожденичката" loading="lazy" width="1400" height="1361"></div>
+        <h3>Terasa OK</h3>
+        <p>Основното пространство на ресторанта: на открито, с прибиращ се покрив и защита от вятъра. Нито дъжд, нито силно слънце, а лятната вечер продължава колкото пожелаете.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: подредената зала „Видин“</span></div>
+        <h3>Зала „Видин“</h3>
+        <p>Старият зимен ресторант, днес зала за групи до 35 души: юбилеи, помени, фирмени вечери, семейни събирания. Отдава се и отделно.</p>
+        <a class="buton buton-secundar" href="../sala-de-bal.html#cerere" hreflang="ro">Поискай оферта за зала „Видин“</a>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: малката предна тераса</span></div>
+        <h3>Предната тераса</h3>
+        <p>16–20 места направо на улицата. От пролетта до есента сутрешното слънце я топли леко: най-доброто място за сутрешното кафе.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="meniul-zilei">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">Готвено всяка сутрин</span>
+        <h2>Меню на деня: 24 леи</h2>
+        <p>Три ястия, сготвени същата сутрин: супа, основно и гарнитура. Сменя се всеки ден и го обявяваме всяка сутрин на нашата <a href="{{contact.facebook}}" rel="noopener" target="_blank">Facebook страница</a> (на румънски).</p>
+        <!-- M1/M8: живият компонент от data/meniu-zilei.json; имената на ястията са на български, когато JSON-ът има `traduceri.bg`, иначе на румънски. -->
+        <div data-meniu-zilei data-whatsapp="{{contact.whatsapp}}">
+          <div class="nota" data-meniu-zilei-fallback>
+            <p><strong>Менюто за днес:</strong> обадете се на <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a> или пишете в <a href="https://wa.me/{{contact.whatsapp}}?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D0%B5%D0%B9%D1%82%D0%B5!%20%D0%9A%D0%B0%D0%BA%D0%B2%D0%BE%20%D0%B5%20%D0%BC%D0%B5%D0%BD%D1%8E%D1%82%D0%BE%20%D0%BD%D0%B0%20%D0%B4%D0%B5%D0%BD%D1%8F%20%D0%B4%D0%BD%D0%B5%D1%81%3F" rel="noopener" target="_blank">WhatsApp</a>. На място или за вкъщи.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Идвате от Видин?</h3>
+        <p>Калафат е на румънския край на Дунав мост Видин–Калафат, на път DN56 и на велосипедния маршрут EuroVelo 6. Ресторантът е в центъра, на няколко минути от моста. Цените са в леи, румънската валута.</p>
+        <a class="buton buton-secundar" href="contact.html">Как да ни намерите</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="meniu">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Кухнята</span>
+      <h2>Менюто на ресторанта</h2>
+      <p>Пълното меню, с цени и алергени, ще бъде публикувано тук. <span class="todo">TODO-Sorin: списък с ястията и актуалните цени (после и българската версия)</span></p>
+    </div>
+    <div class="grila grila-3">
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: супи</span></div>
+        <h3>Супи и чорби</h3>
+        <p>Чорбите на заведението, готвени всеки ден. Днешния списък ще научите на масата или по телефона.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: основно ястие</span></div>
+        <h3>Основни ястия</h3>
+        <p>Румънска кухня, месо на скара и риба, с домашни гарнитури.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: десерт / бар</span></div>
+        <h3>Десерт и бар</h3>
+        <p>Сладкишите идват от нашата <a href="../cofetaria.html" hreflang="ro">сладкарница OK</a>. Барът: кафе, бира, вино и безалкохолни.</p>
+      </div>
+    </div>
+    <p class="mic mut sus-1">Информация за алергени: <a href="../alergeni.html" hreflang="ro">страницата за алергени</a> (на румънски) или попитайте персонала.</p>
+  </div>
+</section>
+
+<section class="sectiune" id="program">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">Кога да дойдете</span>
+        <h2>Работно време</h2>
+        <div data-program-lista="gastro-pub">
+          <p>Работно време: обадете се на <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>.</p>
+        </div>
+      </div>
+      <div>
+        <h3>Къде</h3>
+        <p>{{contact.adresa}}<br><a href="{{contact.harta_url}}" rel="noopener" target="_blank">Отвори в Google Maps →</a></p>
+        <h3>Групи и празнични вечери</h3>
+        <p>До 35 души: <a href="#spatii">зала „Видин“</a>, тук. За по-големи събития — <a href="../sala-de-bal.html" hreflang="ro">Бална зала OK</a>, на ул. Traian 2.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

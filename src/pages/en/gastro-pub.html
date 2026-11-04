@@ -1,0 +1,123 @@
+<!-- @page
+  title: Gastro-pub OK — the restaurant
+  descriere: Gastro-pub OK, the restaurant in Calafat open since 1993: Terasa OK with a retractable roof, the Vidin Room for groups of up to 35, menu of the day 24 lei, pub in the evening. A.I. Cuza St. 26, Calafat, Romania. Phone +40785255855.
+  nav: gastro-pub
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">The restaurant</span>
+    <h1>Gastro-pub OK</h1>
+    <p>Where it all started in 1993, in the centre of Calafat. Menu of the day at lunch; Romanian cooking and a drink at the bar in the evening, on Terasa OK — open air, whatever the weather.</p>
+    <div class="butoane">
+      <a class="buton" href="tel:+4{{contact.telefon}}">Book&nbsp;a&nbsp;table:&nbsp;+4{{contact.telefon}}</a>
+      <a class="buton buton-secundar" href="https://wa.me/{{contact.whatsapp}}?text=Hello!%20I%20would%20like%20to%20book%20a%20table%20at%20Gastro-pub%20OK." rel="noopener" target="_blank">Write on WhatsApp</a>
+    </div>
+    <span class="deschis-acum" data-deschis-acum="gastro-pub" hidden></span>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune" id="spatii">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">Where you sit</span>
+      <h2>The terrace, the room and the coffee corner</h2>
+      <p>All three are at the same address, A.I. Cuza St. 26, in the town centre. Look for the “Gastro-pub OK” sign in front of the building.</p>
+    </div>
+    <div class="grila grila-3">
+      <div class="card">
+        <div class="card-poza"><img src="../assets/img/gastro-pub/terasa-majorat.jpg" alt="An 18th-birthday party on Terasa OK in the evening, seen from above: the cake on the table, a lit-up number and the guests around the birthday girl" loading="lazy" width="1400" height="1361"></div>
+        <h3>Terasa OK</h3>
+        <p>The main space of the restaurant: open air, with a retractable roof and shelter from the wind. No rain, no harsh sun, and a summer evening that lasts as long as you like.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: the Vidin Room set up</span></div>
+        <h3>The Vidin Room</h3>
+        <p>The old winter restaurant, today a room for groups of up to 35 people: anniversaries, memorial meals, company dinners, family gatherings. It can also be hired separately.</p>
+        <a class="buton buton-secundar" href="../sala-de-bal.html#cerere" hreflang="ro">Ask for a quote for the Vidin Room</a>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: the small front terrace</span></div>
+        <h3>The front terrace</h3>
+        <p>16–20 seats right on the street. From spring to autumn the morning sun warms it gently: the best spot for your morning coffee.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="meniul-zilei">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">Cooked every morning</span>
+        <h2>Menu of the day: 24 lei</h2>
+        <p>Three courses cooked that morning: soup, main course and a side. It changes every day and we announce it each morning on our <a href="{{contact.facebook}}" rel="noopener" target="_blank">Facebook page</a> (in Romanian).</p>
+        <!-- M1/M8: live component from data/meniu-zilei.json; dish names in English when `traduceri.en` exists, otherwise in Romanian. -->
+        <div data-meniu-zilei data-whatsapp="{{contact.whatsapp}}">
+          <div class="nota" data-meniu-zilei-fallback>
+            <p><strong>Today’s menu:</strong> call <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a> or write on <a href="https://wa.me/{{contact.whatsapp}}?text=Hello!%20What%20is%20today%27s%20menu%20of%20the%20day%3F" rel="noopener" target="_blank">WhatsApp</a>. Eat in or take away.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Travelling through?</h3>
+        <p>Calafat is at the Romanian end of the Calafat–Vidin bridge, on the DN56 road and the EuroVelo 6 cycling route. The restaurant is in the centre, a few minutes from the bridge. Prices are in lei, the Romanian currency.</p>
+        <a class="buton buton-secundar" href="contact.html">How to find us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sectiune" id="meniu">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">The kitchen</span>
+      <h2>The restaurant menu</h2>
+      <p>The full menu, with prices and allergens, will be published here. <span class="todo">TODO-Sorin: list of dishes and current prices (then the English version)</span></p>
+    </div>
+    <div class="grila grila-3">
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: soups</span></div>
+        <h3>Soups</h3>
+        <p>The house soups — Romanian <em lang="ro">ciorbă</em>, sour and hearty — cooked daily. Ask at the table or by phone for today’s list.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: main course</span></div>
+        <h3>Main courses</h3>
+        <p>Romanian cooking, grilled meat and fish, with home-made sides.</p>
+      </div>
+      <div class="card">
+        <div class="card-poza poza-todo"><span>TODO-poza: dessert / bar</span></div>
+        <h3>Dessert and bar</h3>
+        <p>Pastries come from our own <a href="../cofetaria.html" hreflang="ro">Cofetăria OK</a>. The bar: coffee, beer, wine and soft drinks.</p>
+      </div>
+    </div>
+    <p class="mic mut sus-1">Allergen information: <a href="../alergeni.html" hreflang="ro">allergens page</a> (in Romanian) or ask the staff.</p>
+  </div>
+</section>
+
+<section class="sectiune" id="program">
+  <div class="container">
+    <div class="grila grila-2">
+      <div>
+        <span class="eticheta">When to come</span>
+        <h2>Opening hours</h2>
+        <div data-program-lista="gastro-pub">
+          <p>Opening hours: call <a href="tel:+4{{contact.telefon}}">+4{{contact.telefon}}</a>.</p>
+        </div>
+      </div>
+      <div>
+        <h3>Where</h3>
+        <p>{{contact.adresa}}<br><a href="{{contact.harta_url}}" rel="noopener" target="_blank">Open in Google Maps →</a></p>
+        <h3>Groups and festive dinners</h3>
+        <p>Up to 35 people: <a href="#spatii">the Vidin Room</a>, here. For larger events, the <a href="../sala-de-bal.html" hreflang="ro">OK Ballroom</a>, at Traian St. 2.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

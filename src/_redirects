@@ -1,0 +1,24 @@
+# Redirecționări de la URL-urile vechi (WordPress) către paginile noi. Cloudflare Pages le citește din dist/_redirects.
+/meniu/                          /gastro-pub                       301
+/meniu                           /gastro-pub                       301
+/despre-noi/                     /despre                           301
+/despre-noi                      /despre                           301
+/contact/                        /contact                          301
+/livrari-la-domiciliu/           /gastro-pub                       301
+/livrari-la-domiciliu            /gastro-pub                       301
+/informatii-alergeni/            /alergeni                         301
+/informatii-alergeni             /alergeni                         301
+/politica-de-confidentialitate/  /politica-de-confidentialitate    301
+/acasa/                          /                                 301
+/acasa                           /                                 301
+/blog/                           /                                 301
+/blog/*                          /                                 301
+/personal/                       /                                 301
+/cos/                            /                                 301
+/contul-meu/                     /                                 301
+/finalizare/                     /                                 301
+/categorie-produs/*              /                                 301
+/termeni-si-conditii/            /                                 301
+/termeni-si-conditii             /                                 301
+/wp-admin/*                      /                                 301
+/wp-login.php                    /                                 301

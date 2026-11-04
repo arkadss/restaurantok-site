@@ -1,0 +1,1232 @@
+{
+  "name": "OK · meniul zilei (M1)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "m1-01",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -620,
+        200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "m1-02",
+      "name": "Trigger 16:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        440
+      ],
+      "notes": "Marchează valabil_pana ca trecut la ora închiderii (luni–sâmbătă). Fusul orar vine din setările workflow-ului: Europe/Bucharest."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "github_owner",
+              "type": "string",
+              "value": "<<TODO: utilizatorul/organizația GitHub>>"
+            },
+            {
+              "id": "a2",
+              "name": "github_repo",
+              "type": "string",
+              "value": "<<TODO: restaurantok-site>>"
+            },
+            {
+              "id": "a3",
+              "name": "telegram_chat_id",
+              "type": "string",
+              "value": "<<TODO: chat ID-ul lui Sorin>>"
+            },
+            {
+              "id": "a4",
+              "name": "site_url",
+              "type": "string",
+              "value": "https://restaurantok.com"
+            },
+            {
+              "id": "a5",
+              "name": "fus_orar",
+              "type": "string",
+              "value": "Europe/Bucharest"
+            },
+            {
+              "id": "a6",
+              "name": "pret_implicit",
+              "type": "number",
+              "value": 24
+            },
+            {
+              "id": "a7",
+              "name": "ora_inchidere",
+              "type": "string",
+              "value": "16:00"
+            },
+            {
+              "id": "a8",
+              "name": "telefon_afisat",
+              "type": "string",
+              "value": "0785255855"
+            },
+            {
+              "id": "a9",
+              "name": "traducere",
+              "type": "string",
+              "value": "glosar"
+            },
+            {
+              "id": "a10",
+              "name": "deepl_url",
+              "type": "string",
+              "value": "https://api-free.deepl.com/v2/translate"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "m1-03",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -380,
+        320
+      ],
+      "notes": "Singurul loc de configurat. Secretele (token-uri) stau în credențialele n8n, nu aici. M8: traducere = glosar (implicit, fără internet) | deepl (cheia în credențiala „DeepL API key\"; deepl_url = api-free.deepl.com pentru planul gratuit, api.deepl.com pentru Pro) | nu."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ !$json.message || String($json.message.chat.id) === String($('Config').first().json.telegram_chat_id) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1-04",
+      "name": "Este Sorin?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        320
+      ],
+      "notes": "Mesajele din alte chat-uri sunt ignorate. Trigger-ul de la 16:00 (fără message) trece mai departe."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nodul Code „Interpretează mesajul\" (n8n). Primește fie update-ul de la Telegram Trigger, fie\n// item-ul de la „Trigger 16:00\" (fără `message`) și întoarce un singur item:\n//   { actiune: 'meniu' | 'poza' | 'gata' | 'alergeni' | 'traducere' | 'editare' | 'ajutor', sursa, chat_id, text, meniu?, file_id?, index?, alergeni?, limba?, traducere?, editare?, fisier?, ajutor_editare?, eroare? }\n// Parserul (ParsareMeniu) este inserat mai jos de n8n/genereaza.js din n8n/cod/parseaza-meniu.js.\nconst ParsareMeniu = (function () { const module = { exports: {} };\n/* Parsarea textului „meniul zilei\" trimis de Sorin pe Telegram → obiectul din data/meniu-zilei.json.\n   Fișierul este sursa pentru nodul Code „Interpretează mesajul\" din n8n/meniu-zilei.json\n   (n8n/genereaza.js îl inserează în workflow) și se testează separat: node tests/parseaza-meniu.test.js.\n   Fără dependențe; rulează în Node 18+ (n8n) și în browser. */\n(function (root) {\n  'use strict';\n\n  var LUNI = { ianuarie: 1, ian: 1, februarie: 2, feb: 2, martie: 3, mar: 3, aprilie: 4, apr: 4, mai: 5, iunie: 6, iun: 6, iulie: 7, iul: 7,\n    august: 8, aug: 8, septembrie: 9, sept: 9, sep: 9, octombrie: 10, oct: 10, noiembrie: 11, noi: 11, nov: 11, decembrie: 12, dec: 12 };\n  var ZILE = { duminica: 0, duminică: 0, luni: 1, marti: 2, marți: 2, miercuri: 3, joi: 4, vineri: 5, sambata: 6, sâmbătă: 6, simbata: 6 };\n\n  // Detectare automată de alergeni după cuvinte-cheie (cele 14 categorii UE). Este un AJUTOR, nu o garanție:\n  // confirmarea de pe Telegram arată ce s-a detectat, iar Sorin poate corecta cu „alergeni 2: gluten, ou\"\n  // sau poate scrie alergenii explicit în paranteză după preparat: „Ciorbă de perișoare (gluten, ou, țelină)\".\n  var ALERGENI = [\n    ['gluten', /p[âa]ine|pesmet|\\bpane\\b|[șs]ni[țt]el|t[ăa]i[țt]ei|g[ăa]lu[șs]|\\bpaste\\b|spaghete|macaroane|cl[ăa]tit|aluat|pl[ăa]cint|\\bgri[șs]\\b|cu[șs]cu[șs]|peri[șs]oar|chiftel|p[âa]rjoal|sarmale|burger|pizza|foietaj|f[ăa]in[ăa]|crutoane|\\borz\\b|secar[ăa]|ov[ăa]z|bulgur|lasagna|covrig|papana[șs]|gogo[șs]|\\btort\\b|pr[ăa]jitur|cozonac|biscui|ecler|[șs]trudel|\\bcrem[șs]nit|salat[ăa] (de )?boeuf|ciulama|rulad[ăa]/i],\n    ['ou', /\\bou[ăa]?\\b|\\bou[ăa]\\b|maionez|omlet|peri[șs]oar|chiftel|p[âa]rjoal|[șs]ni[țt]el|\\bpane\\b|papana[șs]|cl[ăa]tit|\\btort\\b|pr[ăa]jitur|ecler|cozonac|g[ăa]lu[șs]|boeuf|drob|musaca|sufleu|bezea|cl[ăa]tite/i],\n    ['lapte', /\\blapte|sm[âa]nt[âa]n|br[âa]nz|ca[șs]caval|telemea|urd[ăa]|\\bunt\\b|iaurt|fri[șs]c|\\bsana\\b|mozzarella|parmezan|papana[șs]|gratinat|bechamel|piure|ciulama|\\bcrem[ăa]\\b|[îi]nghe[țt]at|ecler|\\btort\\b|pr[ăa]jitur|cheesecake|tiramisu|lasagna|pizza|sufleu|budinc[ăa]|m[ăa]m[ăa]lig[ăa] cu br[âa]nz/i],\n    ['pește', /pe[șs]te\\b|\\bcrap\\b|p[ăa]str[ăa]v|\\bsomn\\b|[șs]al[ăa]u|[șs]tiuc[ăa]|hering|macrou|scrumbie|\\bton\\b|somon|\\bcaras\\b|pl[ăa]tic[ăa]|plachie|an[șs]oa|sardin|\\bcod\\b|merluciu|dorad[ăa]|biban/i],\n    ['țelină', /[țt]elin|ciorb[ăa]|\\bsup[ăa]\\b|\\bbor[șs]\\b|rasol|\\bzeam[ăa]\\b/i],\n    ['soia', /\\bsoia|tofu|edamame|ciocolat/i],\n    ['muștar', /mu[șs]tar/i],\n    ['fructe cu coajă', /\\bnuc[iă]\\b|\\bnuc[ăa]\\b|alune|migdal|fistic|caju|pecan|macadamia|baklava|cataif/i],\n    ['arahide', /arahid/i],\n    ['susan', /susan|tahini|hum+us/i],\n    ['sulfiți', /\\bvin\\b|\\bvin (alb|ro[șs]u)|stafid|fructe uscate|o[țt]et balsamic/i],\n    ['crustacee', /creve[țt]|\\braci?\\b|homar|\\bcrab/i],\n    ['moluște', /midii|scoici|calamar|caracati[țt]|sepie|melci/i],\n    ['lupin', /lupin/i]\n  ];\n  var NUME_ALERGENI = { gluten: 'gluten', ou: 'ou', oua: 'ou', 'ouă': 'ou', lapte: 'lapte', lactoza: 'lapte', 'lactoză': 'lapte', peste: 'pește', 'pește': 'pește',\n    telina: 'țelină', 'țelină': 'țelină', soia: 'soia', mustar: 'muștar', 'muștar': 'muștar', nuci: 'fructe cu coajă', alune: 'fructe cu coajă', 'fructe cu coaja': 'fructe cu coajă',\n    'fructe cu coajă': 'fructe cu coajă', arahide: 'arahide', susan: 'susan', sulfiti: 'sulfiți', 'sulfiți': 'sulfiți', crustacee: 'crustacee', moluste: 'moluște', 'moluște': 'moluște', lupin: 'lupin', fara: null, 'fără': null, niciunul: null, '-': null };\n\n  function pad(n) { return (n < 10 ? '0' : '') + n; }\n  function isoZi(d) { return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }\n\n  // ora locală (Europe/Bucharest) ca obiect { data:'YYYY-MM-DD', ora, minut, zi (0=duminică), offset:'+03:00' }\n  function localRo(acum, fus) {\n    acum = acum || new Date(); fus = fus || 'Europe/Bucharest';\n    try {\n      var p = {};\n      new Intl.DateTimeFormat('en-GB', { timeZone: fus, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short' })\n        .formatToParts(acum).forEach(function (x) { p[x.type] = x.value; });\n      var offset = '+02:00';\n      try {\n        var o = new Intl.DateTimeFormat('en-GB', { timeZone: fus, timeZoneName: 'longOffset' }).formatToParts(acum).filter(function (x) { return x.type === 'timeZoneName'; })[0].value;\n        var m = /GMT([+-]\\d{2}:\\d{2})/.exec(o); if (m) offset = m[1];\n      } catch (e) {}\n      return { data: p.year + '-' + p.month + '-' + p.day, ora: +p.hour % 24, minut: +p.minute, zi: { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[p.weekday], offset: offset };\n    } catch (e) {\n      return { data: acum.toISOString().slice(0, 10), ora: acum.getUTCHours(), minut: acum.getUTCMinutes(), zi: acum.getUTCDay(), offset: '+02:00' };\n    }\n  }\n  function plusZile(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return isoZi(d); }\n  function offsetPentru(dataIso, fus) { // offset-ul României la prânz în ziua dată (vară +03:00, iarnă +02:00)\n    return localRo(new Date(dataIso + 'T10:00:00Z'), fus).offset;\n  }\n\n  function capitalizeaza(s) { s = s.trim(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }\n  function curata(s) { return s.replace(/\\s+/g, ' ').replace(/^[\\s\\-–•*·\\d.)]+/, '').replace(/[\\s.;,]+$/, '').trim(); }\n\n  function categorie(nume) {\n    var n = nume.toLowerCase();\n    if (/^desert|pr[ăa]jitur|\\btort\\b|papana[șs]|cl[ăa]tit|[îi]nghe[țt]at|ecler|pl[ăa]cint[ăa] cu (mere|br[âa]nz|dovleac)|g[ăa]lu[șs]te cu prune|cozonac|budinc[ăa]/.test(n)) return 'desert';\n    if (/^(ciorb[ăa]|sup[ăa]|bor[șs]|zeam[ăa])/.test(n)) return /^sup[ăa]/.test(n) ? 'supă' : 'ciorbă';\n    if (/^(salat[ăa]|mur[ăa]tur|garnitur|cartofi|orez|pilaf|m[ăa]m[ăa]lig[ăa]$|legume la|piure$)/.test(n)) return 'garnitură';\n    return 'fel principal';\n  }\n  function alergeniAutomat(nume) {\n    var out = [];\n    ALERGENI.forEach(function (a) { if (a[1].test(nume) && out.indexOf(a[0]) < 0) out.push(a[0]); });\n    return out;\n  }\n  function alergeniExpliciti(text) { // „gluten, ou, telina\" → ['gluten','ou','țelină']; „fără\" → []\n    var out = [];\n    text.split(/[,;/]|\\s+[șs]i\\s+/).forEach(function (t) {\n      t = t.trim().toLowerCase().replace(/\\.$/, ''); if (!t) return;\n      var k = NUME_ALERGENI.hasOwnProperty(t) ? NUME_ALERGENI[t] : t;\n      if (k && out.indexOf(k) < 0) out.push(k);\n    });\n    return out;\n  }\n\n  /* detecteazaData(text, local) → { data:'YYYY-MM-DD', rest: text fără expresia de dată, explicit: bool } */\n  function detecteazaData(text, local) {\n    var azi = local.data, m, data = null, rest = text;\n    if ((m = /\\bm[âa]ine\\b/i.exec(text))) { data = plusZile(azi, 1); rest = text.replace(m[0], ' '); }\n    else if ((m = /\\b(azi|ast[ăa]zi)\\b/i.exec(text))) { data = azi; rest = text.replace(m[0], ' '); }\n    else if ((m = /\\b(\\d{1,2})[./-](\\d{1,2})(?:[./-](\\d{2,4}))?\\b/.exec(text))) {\n      var an = m[3] ? (+m[3] < 100 ? 2000 + (+m[3]) : +m[3]) : +azi.slice(0, 4);\n      data = an + '-' + pad(+m[2]) + '-' + pad(+m[1]); rest = text.replace(m[0], ' ');\n      if (!m[3] && data < azi) data = (an + 1) + data.slice(4);\n    } else if ((m = /\\b(\\d{1,2})\\s+(ianuarie|ian|februarie|feb|martie|mar|aprilie|apr|mai|iunie|iun|iulie|iul|august|aug|septembrie|sept|sep|octombrie|oct|noiembrie|noi|nov|decembrie|dec)\\b\\.?(\\s+\\d{4})?/i.exec(text))) {\n      var an2 = m[3] ? +m[3].trim() : +azi.slice(0, 4);\n      data = an2 + '-' + pad(LUNI[m[2].toLowerCase()]) + '-' + pad(+m[1]); rest = text.replace(m[0], ' ');\n      if (!m[3] && data < plusZile(azi, -3)) data = (an2 + 1) + data.slice(4);\n    } else if ((m = /\\b(luni|mar[țt]i|miercuri|joi|vineri|s[âa]mb[ăa]t[ăa]|simbata|duminic[ăa])\\b/i.exec(text))) {\n      var tinta = ZILE[m[1].toLowerCase()], d = 0;\n      while (((local.zi + d) % 7) !== tinta) d++;\n      if (d === 0 && local.ora >= 16) d = 7;\n      data = plusZile(azi, d); rest = text.replace(m[0], ' ');\n    }\n    if (!data) return { data: local.ora >= 14 ? plusZile(azi, 1) : azi, rest: text, explicit: false };\n    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(data) || isNaN(Date.parse(data + 'T00:00:00Z'))) return { eroare: 'Nu înțeleg data „' + m[0] + '\".' };\n    return { data: data, rest: rest, explicit: true };\n  }\n\n  /* parseazaMeniu(text, acum, optiuni) →\n       { data, valabil_pana, pret, moneda, preparate:[{categorie, nume, alergeni, alergeni_automat}], text_original, data_explicita }\n       sau { eroare: '...' }\n     optiuni: { pret_implicit: 24, ora_inchidere: '16:00', fus: 'Europe/Bucharest' } */\n  function parseazaMeniu(text, acum, optiuni) {\n    optiuni = optiuni || {};\n    var local = localRo(acum, optiuni.fus);\n    var t = String(text || '').replace(/\\r/g, '').trim();\n    if (!t) return { eroare: 'Mesajul este gol.' };\n\n    // telefonul și „comenzi: …\" nu intră în meniu\n    t = t.replace(/\\(?\\+?4?0\\s?\\d{3}[\\s.-]?\\d{3}[\\s.-]?\\d{3}\\)?/g, ' ').replace(/\\b(comenzi|rezerv[ăa]ri|telefon|tel)\\s*:?\\s*(la)?\\s*\\.?/gi, ' ');\n\n    // prețul\n    var pret = optiuni.pret_implicit == null ? 24 : optiuni.pret_implicit, mp = /(\\d{1,3}(?:[.,]\\d{1,2})?)\\s*(lei|ron)\\b/i.exec(t);\n    if (mp) { pret = parseFloat(mp[1].replace(',', '.')); t = t.replace(mp[0], ' '); }\n\n    // data\n    var antet = t.split('\\n')[0];\n    var dd = detecteazaData(antet, local);\n    if (dd.eroare) return dd;\n    if (dd.explicit) t = dd.rest + t.slice(antet.length);\n\n    // antetul „Meniul zilei …:\" se taie\n    var linii = t.split('\\n').map(function (l) { return l.trim(); }).filter(Boolean);\n    if (linii.length && /^(meniul?|meniul zilei|azi|m[âa]ine)\\b[^:\\n]{0,40}:/i.test(linii[0])) linii[0] = linii[0].replace(/^[^:]*:\\s*/, '');\n    else if (linii.length && /^(meniul?( zilei)?)\\s*[,!.-]*\\s*$/i.test(linii[0])) linii.shift();\n    if (linii.length === 1 && /^[^:]{0,30}:\\s*/.test(linii[0]) && !/\\(/.test(linii[0].split(':')[0])) linii[0] = linii[0].replace(/^[^:]*:\\s*/, '');\n\n    // preparatele: câte unul pe rând sau separate prin virgulă / punct și virgulă / „•\"\n    var bucati = [];\n    linii.forEach(function (l) {\n      var parti = linii.length === 1 ? l.split(/\\s*(?:;|•|\\|)\\s*|,(?![^(]*\\))\\s*/) : [l];\n      parti.forEach(function (p) { p = curata(p); if (p) bucati.push(p); });\n    });\n    bucati = bucati.filter(function (b) { return !/^(poft[ăa] bun[ăa]|v[ăa] a[șs]tept[ăa]m|la pachet.*|livrare.*)$/i.test(b); });\n    if (!bucati.length) return { eroare: 'Nu am găsit niciun preparat în mesaj.' };\n    if (bucati.length > 8) return { eroare: 'Am găsit ' + bucati.length + ' preparate; scrie cel mult 8, câte unul pe rând.' };\n\n    var preparate = bucati.map(function (b) {\n      var m = /^(.*?)\\s*\\(([^)]*)\\)\\s*$/.exec(b), nume = b, alergeni, automat = true, cat = null;\n      if (m && /^(f[ăa]r[ăa]|niciunul|-|[a-zăâîșț ,;/]+)$/i.test(m[2]) && alergeniExpliciti(m[2]).every(function (a) { return /^(gluten|ou|lapte|pește|țelină|soia|muștar|fructe cu coajă|arahide|susan|sulfiți|crustacee|moluște|lupin)$/.test(a); })) {\n        nume = m[1]; alergeni = alergeniExpliciti(m[2]); automat = false;\n      }\n      var mc = /^(ciorb[ăa]|sup[ăa]|fel principal|fel|garnitur[ăa]|salat[ăa]|desert)\\s*:\\s*(.+)$/i.exec(nume);\n      if (mc) { cat = mc[1].toLowerCase().replace('fel', 'fel principal').replace('fel principal principal', 'fel principal'); nume = mc[2]; }\n      nume = capitalizeaza(curata(nume));\n      if (automat) alergeni = alergeniAutomat(nume);\n      var p = { categorie: cat || categorie(nume), nume: nume, alergeni: alergeni };\n      if (automat) p.alergeni_automat = true;\n      return p;\n    }).filter(function (p) { return p.nume.length >= 3; });\n    if (!preparate.length) return { eroare: 'Preparatele sunt prea scurte ca să le înțeleg.' };\n    if (preparate.some(function (p) { return p.nume.length > 90; })) return { eroare: 'Un preparat are peste 90 de caractere; probabil lipsesc virgulele sau rândurile noi.' };\n\n    var inchidere = /^(\\d{1,2}):(\\d{2})$/.test(optiuni.ora_inchidere || '') ? optiuni.ora_inchidere : '16:00';\n    return {\n      data: dd.data,\n      valabil_pana: dd.data + 'T' + pad(+inchidere.split(':')[0]) + ':' + inchidere.split(':')[1] + ':00' + offsetPentru(dd.data, optiuni.fus),\n      pret: pret, moneda: 'lei', preparate: preparate,\n      text_original: String(text).trim(), data_explicita: dd.explicit\n    };\n  }\n\n  // textul pentru Facebook / confirmare: „Meniul zilei, 20 octombrie: ciorbă …, crap …. 24 lei. Comenzi: 0785255855.\"\n  var LUNI_LUNG = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];\n  function textFacebook(meniu, telefon) {\n    var p = meniu.data.split('-');\n    var lista = meniu.preparate.map(function (x, i) { return i ? x.nume.charAt(0).toLowerCase() + x.nume.slice(1) : x.nume.charAt(0).toLowerCase() + x.nume.slice(1); }).join(', ');\n    return 'Meniul zilei, ' + (+p[2]) + ' ' + LUNI_LUNG[+p[1] - 1] + ': ' + lista + '. ' + meniu.pret + ' ' + meniu.moneda + '.' + (telefon ? ' Comenzi: ' + telefon + '.' : '');\n  }\n\n  var api = { parseazaMeniu: parseazaMeniu, textFacebook: textFacebook, localRo: localRo, alergeniExpliciti: alergeniExpliciti, alergeniAutomat: alergeniAutomat, plusZile: plusZile };\n  if (typeof module !== 'undefined' && module.exports) module.exports = api;\n  else root.ParsareMeniu = api;\n})(typeof globalThis !== 'undefined' ? globalThis : this);\n\nreturn module.exports; })();\n// Editarea conținutului prin Telegram (M8): program, zile închise, meniul săptămânii, torturi, catering (n8n/cod/editare.js).\nconst Editare = (function () { const module = { exports: {} };\n/* Editarea conținutului site-ului prin Telegram (M8): comenzile lui Sorin → modificări în data/program.json,\n   data/catering.json și data/torturi.json. Fișierul este inserat de n8n/genereaza.js în nodurile Code\n   „Interpretează mesajul\" (recunoaște comanda) și „Aplică modificarea\" (o aplică pe JSON-ul citit din GitHub)\n   din n8n/meniu-zilei.json și se testează separat: node tests/editare.test.js.\n   Fără dependențe; rulează în Node 18+ (n8n) și în browser.\n\n   Comenzi (diacriticele sunt opționale; data: 25.12, 25.12.2026, 25 decembrie):\n     închis 25.12 Crăciun                      zi închisă (ambele unități); „restaurant\" / „cofetărie\" o limitează la una\n     închis 24.12 - 26.12 cofetărie Sărbători   interval de zile\n     deschis 31.12 9:00-15:00 Revelion          program special într-o zi (una sau mai multe perechi de ore)\n     șterge 25.12                               scoate excepțiile din ziua aceea\n     program cofetărie: luni-sâmbătă 9-20, duminică închis      programul săptămânal al unei unități (toate zilele)\n     săptămâna: luni ciorbă de legume, pui la cuptor; marți …   meniul săptămânii pentru prânzul la birou (+ „de la 3.11\", „26 lei\")\n     tort diplomat: 120 lei/kg, 3 zile          preț „de la\", unitatea (kg / bucată) și termenul unui tort din catalog\n     torturi termen 3 zile                      termenul minim general de comandă\n     catering pomeni: 35 lei                    prețul „de la\" al unei oferte (evenimente / pomeni / prânz)\n     arată program | excepții | săptămâna | torturi | catering     ce e acum în fișiere */\n(function (root) {\n  'use strict';\n\n  var LUNI = { ianuarie: 1, ian: 1, februarie: 2, feb: 2, martie: 3, mar: 3, aprilie: 4, apr: 4, mai: 5, iunie: 6, iun: 6, iulie: 7, iul: 7,\n    august: 8, aug: 8, septembrie: 9, sept: 9, sep: 9, octombrie: 10, oct: 10, noiembrie: 11, noi: 11, nov: 11, decembrie: 12, dec: 12 };\n  var LUNI_LUNG = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];\n  var ZILE = ['duminica', 'luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata']; // cheile din program.json (fără diacritice)\n  var ZILE_AFISATE = { luni: 'luni', marti: 'marți', miercuri: 'miercuri', joi: 'joi', vineri: 'vineri', sambata: 'sâmbătă', duminica: 'duminică' };\n  var ORDINE_ZILE = ['luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata', 'duminica'];\n  var UNITATI = { 'gastro-pub': 'Gastro-pub OK', cofetaria: 'Cofetăria OK' };\n  var FISIERE = { program: 'data/program.json', catering: 'data/catering.json', torturi: 'data/torturi.json' };\n\n  function pad(n) { return (n < 10 ? '0' : '') + n; }\n  function norm(s) { // minuscule, fără diacritice (și variantele cu sedilă), spații simple\n    return String(s || '').toLowerCase().replace(/[șş]/g, 's').replace(/[țţ]/g, 't').replace(/[ăâ]/g, 'a').replace(/î/g, 'i').replace(/\\s+/g, ' ').trim();\n  }\n  function isoZi(d) { return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }\n  function plusZile(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return isoZi(d); }\n  function ziSapt(iso) { return new Date(iso + 'T00:00:00Z').getUTCDay(); }\n  function dataValida(an, luna, zi) { var d = new Date(Date.UTC(an, luna - 1, zi)); return d.getUTCMonth() === luna - 1 && d.getUTCDate() === zi ? isoZi(d) : null; }\n  function dataRo(iso, cuAn) { var p = String(iso || '').split('-'); return p.length === 3 ? (+p[2]) + ' ' + LUNI_LUNG[+p[1] - 1] + (cuAn ? ' ' + p[0] : '') : iso; }\n\n  // data/ora locală a restaurantului → { data: 'YYYY-MM-DD', offset: '+03:00' }\n  function localRo(acum, fus) {\n    acum = acum || new Date(); fus = fus || 'Europe/Bucharest';\n    try {\n      var p = {};\n      new Intl.DateTimeFormat('en-GB', { timeZone: fus, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })\n        .formatToParts(acum).forEach(function (x) { p[x.type] = x.value; });\n      var offset = '+02:00';\n      try {\n        var o = new Intl.DateTimeFormat('en-GB', { timeZone: fus, timeZoneName: 'longOffset' }).formatToParts(acum).filter(function (x) { return x.type === 'timeZoneName'; })[0].value;\n        var m = /GMT([+-]\\d{2}:\\d{2})/.exec(o); if (m) offset = m[1];\n      } catch (e) {}\n      var ora = +p.hour % 24;\n      return { data: p.year + '-' + p.month + '-' + p.day, offset: offset, iso: p.year + '-' + p.month + '-' + p.day + 'T' + pad(ora) + ':' + p.minute + ':' + p.second + offset };\n    } catch (e) {\n      return { data: acum.toISOString().slice(0, 10), offset: '+02:00', iso: acum.toISOString() };\n    }\n  }\n\n  // ---------- date ----------\n  // Găsește datele din text (normalizat): „25.12\", „25.12.2026\", „25/12\", „25 decembrie\", „25 dec\"; „25.12 - 27.12\" și „25-27.12\" sunt intervale.\n  // Anul lipsă = anul curent, sau următorul dacă ziua ar fi cu peste 30 de zile în trecut. Întoarce { zile: [...iso], rest: textul fără date }.\n  function extrageDate(n, azi) {\n    var anAzi = +azi.slice(0, 4);\n    var zile = [], preaLung = false;\n    function completeaza(zi, luna, an) {\n      zi = +zi; luna = +luna;\n      if (!an) {\n        an = anAzi;\n        var iso = dataValida(an, luna, zi);\n        if (iso && (new Date(iso + 'T00:00:00Z') - new Date(azi + 'T00:00:00Z')) / 864e5 < -30) an++;\n      } else { an = +an; if (an < 100) an += 2000; }\n      return dataValida(an, luna, zi);\n    }\n    var reNum = '(\\\\d{1,2})[./](\\\\d{1,2})(?:[./](\\\\d{2,4}))?';\n    var reLuna = '(\\\\d{1,2})\\\\s+(ianuarie|ian|februarie|feb|martie|mar|aprilie|apr|mai|iunie|iun|iulie|iul|august|aug|septembrie|sept|sep|octombrie|oct|noiembrie|noi|nov|decembrie|dec)\\\\b(?:\\\\s+(\\\\d{4}))?';\n    var rest = n;\n    // interval „25.12 - 27.12\" / „25 - 27.12\" / „25 decembrie - 3 ianuarie\"\n    rest = rest.replace(new RegExp('\\\\b(?:' + reNum + '|' + reLuna + '|(\\\\d{1,2}))\\\\s*(?:-|–|pana la|pana|până la)\\\\s*(?:' + reNum + '|' + reLuna + ')', 'g'), function () {\n      var a = arguments;\n      // grupuri: 1-3 num1, 4-6 luna1, 7 doarZi, 8-10 num2, 11-13 luna2\n      var b = a[8] ? completeaza(a[8], a[9], a[10]) : completeaza(a[11], LUNI[a[12]], a[13]);\n      var s = a[1] ? completeaza(a[1], a[2], a[3]) : a[4] ? completeaza(a[4], LUNI[a[5]], a[6]) : (b ? completeaza(a[7], b.slice(5, 7), b.slice(0, 4)) : null);\n      if (!s || !b || b < s) { zile.push(null); return ' '; }\n      if ((new Date(b + 'T00:00:00Z') - new Date(s + 'T00:00:00Z')) / 864e5 > 62) { preaLung = true; return ' '; }\n      for (var d = s; d <= b; d = plusZile(d, 1)) zile.push(d);\n      return ' ';\n    });\n    if (preaLung) return { eroare: 'Intervalul e prea lung (cel mult 62 de zile).' };\n    rest = rest.replace(new RegExp('\\\\b' + reNum + '\\\\b', 'g'), function (_, zi, luna, an) { zile.push(completeaza(zi, luna, an)); return ' '; });\n    rest = rest.replace(new RegExp('\\\\b' + reLuna, 'g'), function (_, zi, luna, an) { zile.push(completeaza(zi, LUNI[luna], an)); return ' '; });\n    if (zile.some(function (z) { return !z; })) return { eroare: 'Nu înțeleg data. Datele se scriu cu punct (25.12, 25.12.2026 sau 25 decembrie), orele cu două puncte (9:00-15:00).' };\n    var unice = []; zile.forEach(function (z) { if (unice.indexOf(z) < 0) unice.push(z); });\n    unice.sort();\n    return { zile: unice, rest: rest.replace(/\\s+/g, ' ').trim() };\n  }\n\n  // „9-15\", „9:00-15:00\", „09.30 - 23.30\", „10–22\" → [['09:00','15:00'], ...]; întoarce { intervale, rest }\n  function extrageIntervale(n) {\n    var intervale = [], eroare = null;\n    // orele: „9-15\", „9:00-15:00\", „08:30 - 23:30\"; minutele doar cu două puncte (punctul e al datelor: 25.12), fără cifre/punct lipite înainte sau după\n    var rest = n.replace(/(?<![\\d.:])(\\d{1,2})(?::(\\d{2}))?\\s*[-–]\\s*(\\d{1,2})(?::(\\d{2}))?(?![\\d.:])/g, function (_, h1, m1, h2, m2) {\n      h1 = +h1; h2 = +h2; m1 = m1 ? +m1 : 0; m2 = m2 ? +m2 : 0;\n      if (h1 > 24 || h2 > 24 || m1 > 59 || m2 > 59) { eroare = 'Ora nu e validă (' + h1 + ':' + pad(m1) + '–' + h2 + ':' + pad(m2) + ').'; return ' '; }\n      intervale.push([pad(h1 % 24) + ':' + pad(m1), pad(h2 % 24) + ':' + pad(m2)]);\n      return ' ';\n    });\n    if (eroare) return { eroare: eroare };\n    return { intervale: intervale, rest: rest.replace(/\\s+/g, ' ').trim() };\n  }\n  function textIntervale(iv) { return iv && iv.length ? iv.map(function (x) { return x[0] + '–' + x[1]; }).join(', ') : 'închis'; }\n\n  // cuvântul care alege unitatea; întoarce { unitate: 'gastro-pub' | 'cofetaria' | null, rest }\n  function extrageUnitate(n) {\n    var unitate = null;\n    var rest = n.replace(/\\b(restaurant(?:ul)?|gastro[- ]?pub(?:ul)?|terasa|pub(?:ul)?)\\b/g, function () { unitate = 'gastro-pub'; return ' '; })\n      .replace(/\\b(cofetari[ae](?:ia)?|cofetarie|cofetaria)\\b/g, function () { unitate = unitate === 'gastro-pub' ? 'ambele' : 'cofetaria'; return ' '; })\n      .replace(/\\b(ambele|peste tot|tot|toate)\\b/g, function () { unitate = 'ambele'; return ' '; });\n    return { unitate: unitate === 'ambele' ? null : unitate, rest: rest.replace(/\\s+/g, ' ').trim() };\n  }\n  function curataMotiv(original, consumat) {\n    // motivul = cuvintele din textul original care au rămas după extragerea datelor/orelor/unității (comparate fără diacritice)\n    var curat = function (x) { return x.replace(/^[\\s:,;.()-]+|[\\s:,;.()-]+$/g, ''); };\n    var ramase = consumat.split(' ').map(curat).filter(Boolean);\n    if (!ramase.length) return '';\n    var cuvinte = String(original).replace(/\\s+/g, ' ').trim().split(' ');\n    var out = [];\n    cuvinte.forEach(function (c) { var k = curat(norm(c)); var i = ramase.indexOf(k); if (k && i >= 0) { ramase.splice(i, 1); out.push(c.replace(/^[,;:()]+|[,;:()]+$/g, '')); } });\n    return out.join(' ').trim();\n  }\n\n  // zilele săptămânii dintr-un segment (normalizat, fără ore): „luni-vineri\", „sambata si duminica\", „zilnic\" → ['luni', ...]\n  function extrageZile(n) {\n    var zile = [];\n    var alias = { duminica: 'duminica', dum: 'duminica', luni: 'luni', lun: 'luni', marti: 'marti', mar: 'marti', miercuri: 'miercuri', mie: 'miercuri', joi: 'joi', vineri: 'vineri', vin: 'vineri', sambata: 'sambata', simbata: 'sambata', sam: 'sambata' };\n    var reZi = '(duminica|dum|luni|lun|marti|mar|miercuri|mie|joi|vineri|vin|sambata|simbata|sam)';\n    if (/\\b(zilnic|toate zilele|in fiecare zi|luni ?- ?duminica)\\b/.test(n)) return ORDINE_ZILE.slice();\n    var rest = n.replace(new RegExp('\\\\b(?:de )?' + reZi + '\\\\s*(?:-|–|pana la|pana|până la|pana in|pana)\\\\s*' + reZi + '\\\\b', 'g'), function (_, a, b) {\n      var i = ORDINE_ZILE.indexOf(alias[a]), j = ORDINE_ZILE.indexOf(alias[b]);\n      if (i < 0 || j < 0) return ' ';\n      for (var k = i; ; k = (k + 1) % 7) { zile.push(ORDINE_ZILE[k]); if (k === j) break; }\n      return ' ';\n    });\n    rest.replace(new RegExp('\\\\b' + reZi + '\\\\b', 'g'), function (_, a) { zile.push(alias[a]); return ' '; });\n    var unice = []; zile.forEach(function (z) { if (unice.indexOf(z) < 0) unice.push(z); });\n    return unice;\n  }\n\n  // ---------- recunoașterea comenzii ----------\n  /* interpreteaza(text, acum, opt) → null dacă textul NU este o comandă de editare (rămâne meniu al zilei),\n     altfel { fisier, tip, ... } sau { fisier: null, tip: 'eroare', eroare } */\n  function interpreteaza(text, acum, opt) {\n    opt = opt || {};\n    var t = localRo(acum, opt.fus);\n    var azi = t.data;\n    var original = String(text || '').trim();\n    var n = norm(original).replace(/^\\//, '');\n    var m;\n\n    // arată …\n    if ((m = /^(arata|vezi|afiseaza)\\s+(.+)$/.exec(n))) {\n      var ce = m[2].replace(/\\bde\\b|\\bzilele\\b|\\bcurent[a]?\\b|\\bactual[a]?\\b/g, ' ').trim();\n      if (/^(program(ul)?|orar(ul)?)/.test(ce)) return { fisier: FISIERE.program, tip: 'arata', ce: 'program' };\n      if (/^(exceptii(le)?|inchis|zile inchise|zile libere|special)/.test(ce)) return { fisier: FISIERE.program, tip: 'arata', ce: 'exceptii' };\n      if (/^(saptamana|meniul saptamanii|pranz(ul)?( la birou)?)/.test(ce)) return { fisier: FISIERE.catering, tip: 'arata', ce: 'saptamana' };\n      if (/^(torturi(le)?|tort(uri)?|catalog(ul)?|cofetari[ae])/.test(ce)) return { fisier: FISIERE.torturi, tip: 'arata', ce: 'torturi' };\n      if (/^(catering(ul)?|oferte(le)?)/.test(ce)) return { fisier: FISIERE.catering, tip: 'arata', ce: 'catering' };\n      return { fisier: null, tip: 'eroare', eroare: 'Pot arăta: program, excepții, săptămâna, torturi, catering.' };\n    }\n\n    // închis / deschis (program special) / șterge\n    if ((m = /^(inchis|inchidem|liber|deschis|program special|orar special|sterge|anuleaza|scoate|anulati?)\\b\\s*:?\\s*(.*)$/.exec(n))) {\n      var verb = m[1], restN = m[2];\n      var tip = /^(inchis|inchidem|liber)/.test(verb) ? 'inchis' : /^(deschis|program|orar)/.test(verb) ? 'orar_special' : 'sterge';\n      var iv = { intervale: [], rest: restN };\n      if (tip === 'orar_special') { // orele întâi (9:00-15:00), ca să nu fie luate drept date\n        iv = extrageIntervale(restN);\n        if (iv.eroare) return { fisier: null, tip: 'eroare', eroare: iv.eroare };\n        if (!iv.intervale.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsesc orele. Exemplu: deschis 31.12 9:00-15:00 Revelion.' };\n      }\n      var d = extrageDate(iv.rest, azi);\n      if (d.eroare) return { fisier: null, tip: 'eroare', eroare: d.eroare };\n      if (!d.zile.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsește data. Exemplu: ' + (tip === 'inchis' ? 'închis 25.12 Crăciun' : tip === 'orar_special' ? 'deschis 31.12 9:00-15:00 Revelion' : 'șterge 25.12') + '.' };\n      if (d.zile.length > 62) return { fisier: null, tip: 'eroare', eroare: 'Intervalul e prea lung (max 62 de zile).' };\n      var u = extrageUnitate(d.rest);\n      var motiv = tip === 'sterge' ? '' : curataMotiv(original.replace(/^\\/?\\S+\\s*:?\\s*/, ''), u.rest);\n      return { fisier: FISIERE.program, tip: tip, zile: d.zile, orar: iv.intervale, unitate: u.unitate, motiv: motiv };\n    }\n\n    // program <unitate>: luni-vineri 8:30-23:30; sâmbătă …; duminică închis\n    if ((m = /^(program(ul)?|orar(ul)?)\\s+(restaurant(?:ul)?|gastro[- ]?pub(?:ul)?|terasa|cofetari[ae](?:ia)?|cofetarie|cofetaria)\\s*[:\\-]?\\s*([\\s\\S]*)$/.exec(n))) {\n      var unitate = /cofet/.test(m[4]) ? 'cofetaria' : 'gastro-pub';\n      var corp = m[5].trim();\n      if (!corp) return { fisier: null, tip: 'eroare', eroare: 'Scrie programul pe zile. Exemplu: program cofetărie: luni-sâmbătă 9:00-20:00, duminică închis.' };\n      var orar = {}, segmente = corp.split(/[;,\\n]+/);\n      for (var i = 0; i < segmente.length; i++) {\n        var seg = segmente[i].trim(); if (!seg) continue;\n        var ivs = extrageIntervale(seg);\n        if (ivs.eroare) return { fisier: null, tip: 'eroare', eroare: ivs.eroare };\n        var inchis = /\\b(inchis|liber|nu lucram|pauza)\\b/.test(ivs.rest);\n        var zile = extrageZile(ivs.rest.replace(/\\b(inchis|liber|nu lucram|pauza)\\b/g, ' '));\n        if (!zile.length) return { fisier: null, tip: 'eroare', eroare: 'Nu înțeleg zilele din „' + segmente[i].trim() + '\". Exemplu: luni-vineri 9-20.' };\n        if (!inchis && !ivs.intervale.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsesc orele pentru „' + segmente[i].trim() + '\" (sau scrie „închis\").' };\n        zile.forEach(function (z) { orar[z] = inchis ? [] : ivs.intervale; });\n      }\n      var lipsa = ORDINE_ZILE.filter(function (z) { return !(z in orar); });\n      if (lipsa.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsesc zilele: ' + lipsa.map(function (z) { return ZILE_AFISATE[z]; }).join(', ') + '. Scrie programul pentru toate cele 7 zile (sau „duminică închis\").' };\n      var ordonat = {}; ORDINE_ZILE.forEach(function (z) { ordonat[z] = orar[z]; });\n      return { fisier: FISIERE.program, tip: 'program', unitate: unitate, orar: ordonat };\n    }\n\n    // săptămâna: luni …; marți … (meniul săptămânii, prânz la birou)\n    if ((m = /^(saptamana|meniul saptamanii|pranz(?:ul)? la birou)\\s*[:\\-]?\\s*([\\s\\S]*)$/.exec(n))) {\n      var corpS = original.replace(/^\\/?\\s*(s[ăa]pt[ăa]m[âa]na|meniul s[ăa]pt[ăa]m[âa]nii|pr[âa]nz(?:ul)? la birou)\\s*[:\\-]?\\s*/i, ''); // originalul, cu diacritice, fără cuvântul-cheie\n      var pret = null, start = null;\n      var nS = norm(corpS);\n      var mp = /\\b(\\d{2,3})\\s*(?:lei|ron)\\b/.exec(nS); if (mp) pret = +mp[1];\n      var md = /\\b(?:de la|din|incepand cu|incepand)\\s+(\\d{1,2}[./]\\d{1,2}(?:[./]\\d{2,4})?|\\d{1,2}\\s+[a-z]+)/.exec(nS);\n      if (md) {\n        var dd = extrageDate(md[1], azi);\n        if (dd.eroare || !dd.zile.length) return { fisier: null, tip: 'eroare', eroare: 'Nu înțeleg data de început („de la 3.11\").' };\n        start = dd.zile[0];\n      }\n      var segmenteS = corpS.split(/[;\\n]+/).map(function (s) { return s.trim(); }).filter(Boolean);\n      var zileS = {}, reZiStart = /^(luni|lun|marti|marți|mar|miercuri|mie|joi|vineri|vin|sambata|sâmbătă|simbata|sam|duminica|duminică|dum)\\b\\s*[:\\-]?\\s*(.*)$/i;\n      var aliasS = { luni: 'luni', lun: 'luni', marti: 'marti', mar: 'marti', miercuri: 'miercuri', mie: 'miercuri', joi: 'joi', vineri: 'vineri', vin: 'vineri', sambata: 'sambata', simbata: 'sambata', sam: 'sambata', duminica: 'duminica', dum: 'duminica' };\n      segmenteS.forEach(function (s) {\n        var ms = reZiStart.exec(s); if (!ms) return;\n        var preparate = ms[2].replace(/\\b(de la|din|începând cu|incepand cu|începând|incepand)\\s+\\S+/gi, '').replace(/\\b\\d{2,3}\\s*(lei|ron)\\b/gi, '').split(/\\s*,\\s*/).map(function (p) { return p.replace(/[.\\s]+$/, '').trim(); }).filter(Boolean)\n          .map(function (p) { return p.charAt(0).toUpperCase() + p.slice(1); });\n        if (preparate.length) zileS[aliasS[norm(ms[1])]] = preparate;\n      });\n      if (!Object.keys(zileS).length) return { fisier: null, tip: 'eroare', eroare: 'Scrie câte o zi pe rând sau desparte zilele cu „;\". Exemplu: săptămâna: luni ciorbă de legume, pui la cuptor; marți ciorbă de burtă, sarmale.' };\n      if (!start) { var zs = ziSapt(azi); start = zs === 0 ? plusZile(azi, 1) : zs === 6 ? plusZile(azi, 2) : plusZile(azi, 1 - zs); } // luni din săptămâna curentă; sâmbăta/duminica → lunea următoare\n      else start = plusZile(start, ziSapt(start) === 0 ? -6 : 1 - ziSapt(start)); // lunea săptămânii în care cade data\n      var zileOut = ORDINE_ZILE.filter(function (z) { return zileS[z]; }).map(function (z) { return { data: plusZile(start, ORDINE_ZILE.indexOf(z)), preparate: zileS[z] }; });\n      return { fisier: FISIERE.catering, tip: 'saptamana', saptamana: start, pret: pret, zile: zileOut };\n    }\n\n    // torturi termen 3 zile\n    if ((m = /^torturi(?:le)?\\s*[:\\-]?\\s*termen(?:ul)?(?: minim)?\\s*[:\\-]?\\s*(\\d{1,2})\\s*zile?\\b/.exec(n))) return { fisier: FISIERE.torturi, tip: 'torturi_termen', zile: +m[1] };\n\n    // tort diplomat: 120 lei/kg, 3 zile   |   tort nuntă: la cerere\n    if ((m = /^tort(?:ul)?\\s+(.+?)\\s*[:\\-]\\s*(.+)$/.exec(n)) || (m = /^tort(?:ul)?\\s+([a-z][a-z -]*?)\\s+(\\d{1,4}\\s*(?:lei|ron).*)$/.exec(n))) {\n      var cheie = m[1].trim(), valoare = m[2].trim(), rez = { fisier: FISIERE.torturi, tip: 'tort', cheie: cheie };\n      if (/\\b(la cerere|fara pret|fără preț)\\b/.test(valoare)) rez.pret_de_la = null;\n      else {\n        var mpret = /(\\d{1,4}(?:[.,]\\d{1,2})?)\\s*(?:lei|ron)?/.exec(valoare);\n        if (!mpret) return { fisier: null, tip: 'eroare', eroare: 'Lipsește prețul. Exemplu: tort diplomat: 120 lei/kg, 3 zile.' };\n        rez.pret_de_la = +mpret[1].replace(',', '.');\n      }\n      if (/\\b(kg|kilogram(ul)?)\\b/.test(valoare)) rez.per = 'kg';\n      else if (/\\b(buc|bucata|bucati|felie|felia|portie|portia)\\b/.test(valoare)) rez.per = 'bucată';\n      var mt = /(\\d{1,2})\\s*zile?\\b/.exec(valoare); if (mt) rez.termen_minim_zile = +mt[1];\n      return rez;\n    }\n\n    // catering pomeni: 35 lei   |   catering prânz: 24 lei   |   catering evenimente: la cerere\n    if ((m = /^catering\\s+(evenimente?|pomeni|pomana|parastas(?:e)?|pranz(?: la birou)?|birou)\\s*[:\\-]?\\s*(.+)$/.exec(n))) {\n      var idOferta = /^even/.test(m[1]) ? 'evenimente' : /^(pomen|poman|parast)/.test(m[1]) ? 'pomeni' : 'pranz-birou';\n      var val = m[2].trim();\n      if (/\\b(la cerere|fara pret)\\b/.test(val)) return { fisier: FISIERE.catering, tip: 'catering_pret', oferta: idOferta, pret_de_la: null };\n      var mc = /(\\d{1,4}(?:[.,]\\d{1,2})?)\\s*(?:lei|ron)?/.exec(val);\n      if (!mc) return { fisier: null, tip: 'eroare', eroare: 'Lipsește prețul. Exemplu: catering pomeni: 35 lei.' };\n      return { fisier: FISIERE.catering, tip: 'catering_pret', oferta: idOferta, pret_de_la: +mc[1].replace(',', '.') };\n    }\n\n    return null; // nu e comandă de editare\n  }\n\n  // ---------- aplicarea pe JSON ----------\n  /* aplica(cmd, existent, acum, opt) → { scrie, continut (obiect sau null), commit, mesaj } — existent = JSON-ul curent din GitHub (sau null) */\n  function aplica(cmd, existent, acum, opt) {\n    opt = opt || {};\n    var t = localRo(acum, opt.fus);\n    var actualizat = t.iso;\n    var out = { scrie: false, continut: null, commit: '', mesaj: '' };\n    var ok = function (mesaj, nou, commit) { out.scrie = true; out.continut = nou; out.commit = commit; out.mesaj = mesaj + '\\nPe site în ~1 minut.'; return out; };\n    var nu = function (mesaj) { out.mesaj = mesaj; return out; };\n    if (!cmd || cmd.tip === 'eroare') return nu('⚠️ ' + ((cmd && cmd.eroare) || 'Comandă necunoscută.'));\n    if (!existent || typeof existent !== 'object') return nu('⚠️ Nu am putut citi ' + cmd.fisier + ' din repo. Fișierul trebuie să existe deja (vezi n8n/README.md).');\n    var nou = JSON.parse(JSON.stringify(existent));\n    nou.actualizat = actualizat;\n    var numeU = function (u) { return u ? (UNITATI[u] || u) : 'ambele unități'; };\n    var zileText = function (zile) { return zile.length === 1 ? dataRo(zile[0], true) : dataRo(zile[0]) + ' – ' + dataRo(zile[zile.length - 1], true) + ' (' + zile.length + ' zile)'; };\n\n    switch (cmd.tip) {\n      case 'arata': return nu(arata(cmd.ce, existent, t.data));\n\n      case 'inchis': case 'orar_special': {\n        nou.exceptii = Array.isArray(nou.exceptii) ? nou.exceptii : [];\n        cmd.zile.forEach(function (zi) {\n          nou.exceptii = nou.exceptii.filter(function (e) { return !(e && e.data === zi && (e.unitate || null) === (cmd.unitate || null)); });\n          var e = { data: zi };\n          if (cmd.unitate) e.unitate = cmd.unitate;\n          if (cmd.tip === 'inchis') e.inchis = true; else e.orar = cmd.orar;\n          if (cmd.motiv) e.motiv = cmd.motiv;\n          nou.exceptii.push(e);\n        });\n        nou.exceptii.sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });\n        var ce = cmd.tip === 'inchis' ? '🚫 Închis' : '🕓 Program special ' + textIntervale(cmd.orar);\n        return ok('✅ ' + ce + ' pe ' + zileText(cmd.zile) + (cmd.motiv ? ' (' + cmd.motiv + ')' : '') + ' — ' + numeU(cmd.unitate) + '.' + (cmd.zile.length === 1 ? '' : '') + '\\nAnulezi cu <code>șterge ' + cmd.zile[0].slice(8, 10) + '.' + cmd.zile[0].slice(5, 7) + '</code>.',\n          nou, 'data: program.json — ' + (cmd.tip === 'inchis' ? 'închis' : 'program special') + ' ' + cmd.zile[0] + (cmd.zile.length > 1 ? '…' + cmd.zile[cmd.zile.length - 1] : ''));\n      }\n\n      case 'sterge': {\n        var inainte = Array.isArray(nou.exceptii) ? nou.exceptii.length : 0;\n        nou.exceptii = (nou.exceptii || []).filter(function (e) { return !(e && cmd.zile.indexOf(e.data) >= 0 && (!cmd.unitate || (e.unitate || null) === cmd.unitate)); });\n        var scoase = inainte - nou.exceptii.length;\n        if (!scoase) return nu('Nu era nicio excepție pe ' + zileText(cmd.zile) + (cmd.unitate ? ' pentru ' + numeU(cmd.unitate) : '') + '.');\n        return ok('✅ ' + scoase + (scoase === 1 ? ' excepție scoasă' : ' excepții scoase') + ' (' + zileText(cmd.zile) + '); rămâne programul obișnuit.', nou, 'data: program.json — fără excepții ' + cmd.zile[0]);\n      }\n\n      case 'program': {\n        nou.unitati = nou.unitati || {};\n        var u = nou.unitati[cmd.unitate] = nou.unitati[cmd.unitate] || { nume: UNITATI[cmd.unitate] };\n        u.orar = cmd.orar;\n        delete u._exemplu; delete u._nota; // programul nu mai e exemplu → site-ul scoate „orientativ\", build.js îl pune în schema.org\n        if (typeof nou._nota === 'string') nou._nota = nou._nota.replace(/\\s*Programul cofetăriei este încă EXEMPLU[^.]*\\.(\\s*TODO-Sorin\\.)?/, '').trim();\n        if (nou._exemplu && Object.keys(nou.unitati).every(function (k) { return !nou.unitati[k]._exemplu; })) delete nou._exemplu;\n        var linii = ORDINE_ZILE.map(function (z) { return ZILE_AFISATE[z] + ': ' + textIntervale(cmd.orar[z]); });\n        return ok('✅ Programul pentru <b>' + numeU(cmd.unitate) + '</b>:\\n' + linii.join('\\n'), nou, 'data: program.json — programul ' + numeU(cmd.unitate));\n      }\n\n      case 'saptamana': {\n        var ms = nou.meniu_saptamana && typeof nou.meniu_saptamana === 'object' ? nou.meniu_saptamana : {};\n        var pretVechi = typeof ms.pret === 'number' ? ms.pret : null;\n        var ofertaPranz = (nou.oferte || []).filter(function (o) { return o && o.id === 'pranz-birou'; })[0];\n        var pret = cmd.pret != null ? cmd.pret : pretVechi != null ? pretVechi : (ofertaPranz && typeof ofertaPranz.pret_de_la === 'number' ? ofertaPranz.pret_de_la : null);\n        nou.meniu_saptamana = { saptamana: cmd.saptamana, pret: pret, moneda: ms.moneda || 'lei', zile: cmd.zile };\n        if (cmd.pret != null && ofertaPranz) { ofertaPranz.pret_de_la = cmd.pret; delete ofertaPranz._nota; }\n        delete nou._exemplu; // meniul e scris de Sorin, nu mai e exemplu\n        var liniiS = cmd.zile.map(function (z) { return ZILE_AFISATE[ORDINE_ZILE[(ziSapt(z.data) + 6) % 7]] + ' ' + (+z.data.slice(8, 10)) + '.' + z.data.slice(5, 7) + ': ' + z.preparate.join(', '); });\n        return ok('✅ Meniul săptămânii de la ' + dataRo(cmd.saptamana, true) + (pret != null ? ', ' + pret + ' lei/porție' : ', fără preț afișat') + ':\\n' + liniiS.join('\\n'), nou, 'data: catering.json — meniul săptămânii ' + cmd.saptamana);\n      }\n\n      case 'catering_pret': {\n        var of = (nou.oferte || []).filter(function (o) { return o && o.id === cmd.oferta; })[0];\n        if (!of) return nu('⚠️ Nu există oferta „' + cmd.oferta + '\" în catering.json.');\n        of.pret_de_la = cmd.pret_de_la; delete of._nota;\n        if (cmd.oferta === 'pranz-birou' && nou.meniu_saptamana && cmd.pret_de_la != null) nou.meniu_saptamana.pret = cmd.pret_de_la;\n        return ok('✅ ' + of.nume + ': ' + (cmd.pret_de_la == null ? 'preț la cerere' : 'de la ' + cmd.pret_de_la + ' lei / ' + (of.per || 'persoană')) + '.', nou, 'data: catering.json — preț ' + cmd.oferta);\n      }\n\n      case 'torturi_termen': {\n        nou.termen_minim_zile = cmd.zile;\n        return ok('✅ Termenul minim de comandă pentru torturi: ' + cmd.zile + (cmd.zile === 1 ? ' zi' : ' zile') + '.', nou, 'data: torturi.json — termen ' + cmd.zile + ' zile');\n      }\n\n      case 'tort': {\n        var lista = Array.isArray(nou.torturi) ? nou.torturi : [];\n        var k = norm(cmd.cheie);\n        var tort = lista.filter(function (x) { return x && norm(x.id) === k; })[0]\n          || lista.filter(function (x) { return x && norm(x.nume).indexOf(k) >= 0; })[0]\n          || lista.filter(function (x) { return x && k.split(' ').every(function (w) { return norm(x.nume + ' ' + x.id).indexOf(w) >= 0; }); })[0];\n        if (!tort) return nu('⚠️ Nu găsesc tortul „' + cmd.cheie + '\". În catalog: ' + lista.map(function (x) { return x.id; }).join(', ') + '.');\n        tort.pret_de_la = cmd.pret_de_la;\n        if (cmd.per) tort.per = cmd.per;\n        if (cmd.termen_minim_zile != null) tort.termen_minim_zile = cmd.termen_minim_zile;\n        delete tort._nota;\n        if (nou._exemplu && lista.every(function (x) { return !x._nota; })) delete nou._exemplu;\n        return ok('✅ ' + tort.nume + ': ' + (cmd.pret_de_la == null ? 'preț la cerere' : 'de la ' + cmd.pret_de_la + ' lei / ' + (tort.per || 'kg'))\n          + (tort.termen_minim_zile != null ? ', comandă cu minimum ' + tort.termen_minim_zile + ' zile înainte' : '') + '.', nou, 'data: torturi.json — ' + tort.id);\n      }\n\n      default: return nu('⚠️ Comandă necunoscută.');\n    }\n  }\n\n  // „arată …\" → text pentru Telegram\n  function arata(ce, json, azi) {\n    var lin = [];\n    if (ce === 'program') {\n      Object.keys(json.unitati || {}).forEach(function (k) {\n        var u = json.unitati[k]; if (!u || !u.orar) return;\n        lin.push('<b>' + (u.nume || k) + '</b>' + (u._exemplu ? ' (încă exemplu — trimite „program ' + (k === 'cofetaria' ? 'cofetărie' : 'restaurant') + ': …\")' : ''));\n        ORDINE_ZILE.forEach(function (z) { lin.push('  ' + ZILE_AFISATE[z] + ': ' + textIntervale(u.orar[z])); });\n      });\n      return lin.length ? lin.join('\\n') : 'Nu există program în program.json.';\n    }\n    if (ce === 'exceptii') {\n      var exc = (json.exceptii || []).filter(function (e) { return e && e.data >= azi; });\n      if (!exc.length) return 'Nu sunt zile închise sau cu program special de azi încolo.';\n      return '<b>Excepții de azi încolo</b>\\n' + exc.map(function (e) { return dataRo(e.data, true) + ': ' + (e.inchis ? 'închis' : textIntervale(e.orar)) + (e.motiv ? ' (' + e.motiv + ')' : '') + (e.unitate ? ' — ' + (UNITATI[e.unitate] || e.unitate) : ''); }).join('\\n');\n    }\n    if (ce === 'saptamana') {\n      var ms = json.meniu_saptamana;\n      if (!ms || !Array.isArray(ms.zile) || !ms.zile.length) return 'Nu e scris niciun meniu al săptămânii.';\n      return '<b>Meniul săptămânii de la ' + dataRo(ms.saptamana, true) + '</b>' + (typeof ms.pret === 'number' ? ', ' + ms.pret + ' ' + (ms.moneda || 'lei') + '/porție' : '') + (json._exemplu ? ' (exemplu)' : '') + '\\n'\n        + ms.zile.map(function (z) { return (+z.data.slice(8, 10)) + '.' + z.data.slice(5, 7) + ': ' + (z.preparate || []).join(', '); }).join('\\n');\n    }\n    if (ce === 'torturi') {\n      var l = json.torturi || [];\n      if (!l.length) return 'Catalogul de torturi e gol.';\n      return '<b>Torturi</b> (termen minim ' + (json.termen_minim_zile || '?') + ' zile)\\n' + l.map(function (x) { return x.id + ' — ' + x.nume + ': ' + (typeof x.pret_de_la === 'number' ? 'de la ' + x.pret_de_la + ' lei/' + (x.per || 'kg') : 'preț la cerere') + (x.termen_minim_zile ? ', ' + x.termen_minim_zile + ' zile' : ''); }).join('\\n')\n        + '\\nSchimbi cu <code>tort diplomat: 120 lei/kg, 3 zile</code>.';\n    }\n    if (ce === 'catering') {\n      var o = json.oferte || [];\n      if (!o.length) return 'Nu sunt oferte în catering.json.';\n      return '<b>Oferte catering</b>\\n' + o.map(function (x) { return x.id + ' — ' + x.nume + ': ' + (typeof x.pret_de_la === 'number' ? 'de la ' + x.pret_de_la + ' lei/' + (x.per || 'persoană') : 'preț la cerere'); }).join('\\n') + '\\nSchimbi cu <code>catering pomeni: 35 lei</code>.';\n    }\n    return 'Pot arăta: program, excepții, săptămâna, torturi, catering.';\n  }\n\n  var AJUTOR = [\n    '<b>Editarea site-ului de pe telefon</b> (diacriticele nu contează):',\n    '<code>închis 25.12 Crăciun</code> — zi închisă; <code>închis 24.12 - 26.12 cofetărie Sărbători</code> — interval, doar o unitate',\n    '<code>deschis 31.12 9:00-15:00 Revelion</code> — program special într-o zi',\n    '<code>șterge 25.12</code> — scoate excepția',\n    '<code>program cofetărie: luni-sâmbătă 9-20, duminică închis</code> — programul săptămânal (toate zilele)',\n    '<code>săptămâna: luni ciorbă de legume, pui la cuptor; marți …</code> — meniul săptămânii la birou (+ <code>de la 3.11</code>, <code>26 lei</code>)',\n    '<code>tort diplomat: 120 lei/kg, 3 zile</code> · <code>torturi termen 3 zile</code> · <code>catering pomeni: 35 lei</code>',\n    '<code>arată program</code> / <code>excepții</code> / <code>săptămâna</code> / <code>torturi</code> / <code>catering</code>'\n  ].join('\\n');\n\n  var api = { interpreteaza: interpreteaza, aplica: aplica, arata: arata, norm: norm, extrageDate: extrageDate, extrageIntervale: extrageIntervale, extrageZile: extrageZile, localRo: localRo, AJUTOR: AJUTOR, FISIERE: FISIERE };\n  if (typeof module !== 'undefined' && module.exports) module.exports = api;\n  else root.Editare = api;\n})(typeof globalThis !== 'undefined' ? globalThis : this);\n\nreturn module.exports; })();\n\nconst cfg = $('Config').first().json;\nconst item = $input.first().json || {};\nconst msg = item.message || null;\nconst acum = new Date();\nconst out = { actiune: 'gata', sursa: 'program', chat_id: String(cfg.telegram_chat_id || ''), text: '' };\n\nif (msg) {\n  out.sursa = 'telegram';\n  out.chat_id = String(msg.chat && msg.chat.id);\n  const text = String(msg.text || msg.caption || '').trim();\n  out.text = text;\n  let m;\n  if (Array.isArray(msg.photo) && msg.photo.length) {\n    out.actiune = 'poza';\n    out.file_id = msg.photo[msg.photo.length - 1].file_id; // cea mai mare variantă trimisă de Telegram\n    out.media_group_id = msg.media_group_id || null;\n  } else if (msg.document && /^image\\//.test(msg.document.mime_type || '')) {\n    out.actiune = 'poza';\n    out.file_id = msg.document.file_id;\n  } else if (/^\\/?(gata|inchide|închide|stop|terminat|s-a terminat)\\b/i.test(text)) {\n    out.actiune = 'gata';\n  } else if ((m = /^\\/?alergeni\\s+(\\d)\\s*[:\\-]\\s*(.*)$/i.exec(text))) {\n    out.actiune = 'alergeni';\n    out.index = parseInt(m[1], 10) - 1;\n    out.alergeni = ParsareMeniu.alergeniExpliciti(m[2]);\n  } else if ((m = /^\\/?(en|bg)\\s+(\\d)\\s*[:\\-]\\s*(.+)$/i.exec(text))) { // „en 2: Fried carp with polenta\" corectează traducerea preparatului 2 (M8)\n    out.actiune = 'traducere';\n    out.limba = m[1].toLowerCase();\n    out.index = parseInt(m[2], 10) - 1;\n    out.traducere = m[3].trim();\n  } else if (/^\\/?(editare|ajutor editare|editare ajutor|comenzi)\\s*$/i.test(text)) { // ajutorul pentru comenzile de editare (M8)\n    out.actiune = 'ajutor';\n    out.ajutor_editare = true;\n  } else if (!text || text === '?' || /^\\/(start|help|ajutor|meniu|status)\\b/i.test(text)) {\n    out.actiune = 'ajutor';\n  } else if ((m = Editare.interpreteaza(text, acum, { fus: cfg.fus_orar || 'Europe/Bucharest' }))) { // comandă de editare (M8): „închis 25.12\", „program cofetărie: …\", „tort diplomat: …\"\n    if (m.tip === 'eroare') { out.actiune = 'ajutor'; out.ajutor_editare = true; out.eroare = m.eroare; }\n    else { out.actiune = 'editare'; out.editare = m; out.fisier = m.fisier; }\n  } else {\n    const meniu = ParsareMeniu.parseazaMeniu(text, acum, {\n      pret_implicit: Number(cfg.pret_implicit) || 24,\n      ora_inchidere: cfg.ora_inchidere || '16:00',\n      fus: cfg.fus_orar || 'Europe/Bucharest'\n    });\n    if (meniu.eroare) { out.actiune = 'ajutor'; out.eroare = meniu.eroare; }\n    else {\n      meniu.text_facebook = ParsareMeniu.textFacebook(meniu, cfg.telefon_afisat || '');\n      out.actiune = 'meniu';\n      out.meniu = meniu;\n    }\n  }\n}\nreturn [{ json: out }];\n"
+      },
+      "id": "m1-05",
+      "name": "Interpretează mesajul",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        60,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s0",
+                    "leftValue": "={{ $json.actiune }}",
+                    "rightValue": "meniu",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "meniu"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s1",
+                    "leftValue": "={{ $json.actiune }}",
+                    "rightValue": "poza",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "poza"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s2",
+                    "leftValue": "={{ $json.actiune }}",
+                    "rightValue": "gata",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "gata"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s3",
+                    "leftValue": "={{ $json.actiune }}",
+                    "rightValue": "alergeni",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "alergeni"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s4",
+                    "leftValue": "={{ $json.actiune }}",
+                    "rightValue": "ajutor",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "ajutor"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s5",
+                    "leftValue": "={{ $json.actiune }}",
+                    "rightValue": "traducere",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "traducere"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s6",
+                    "leftValue": "={{ $json.actiune }}",
+                    "rightValue": "editare",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "editare"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1-06",
+      "name": "Ce facem?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        280,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "t1",
+              "leftValue": "={{ String($('Config').first().json.traducere || '').trim().toLowerCase() === 'deepl' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1-07",
+      "name": "Traducem cu DeepL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        320
+      ],
+      "notes": "Config.traducere = deepl → cele două noduri DeepL; altfel direct la „Traduceri\" (glosarul local sau nimic)."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.deepl_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $('Interpretează mesajul').first().json.meniu.preparate.map(p => p.nume), source_lang: 'RO', target_lang: 'EN-GB', context: 'Numele preparatelor din meniul zilei al unui restaurant din România.' }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "m1-08",
+      "name": "DeepL EN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        240
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "<<TODO: id credențială>>",
+          "name": "DeepL API key"
+        }
+      },
+      "notes": "DeepL API: antetul Authorization: DeepL-Auth-Key <cheie> stă în credențiala „DeepL API key\" (Header Auth). La eroare continuă: „Traduceri\" cade pe glosar."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.deepl_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $('Interpretează mesajul').first().json.meniu.preparate.map(p => p.nume), source_lang: 'RO', target_lang: 'BG', context: 'Numele preparatelor din meniul zilei al unui restaurant din România.' }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "m1-09",
+      "name": "DeepL BG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        240
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "<<TODO: id credențială>>",
+          "name": "DeepL API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nodul Code „Traduceri\" (n8n, M8). Rulează doar pe ramura „meniu\", după nodurile opționale „DeepL EN\" / „DeepL BG\".\n// Citește modul din Config.traducere: 'deepl' (DeepL, cu glosarul ca rezervă), 'glosar' (implicit: doar glosarul local,\n// fără internet) sau 'nu' (fără traduceri). Întoarce un singur item:\n//   { traduceri: { en: { preparate: [..] }, bg: { preparate: [..] } } | null, sursa: { en: 'deepl'|'glosar'|'mixt'|null, bg: ... }, netraduse: [...] }\n// Un preparat necunoscut rămâne null în listă: site-ul îi arată numele în română. Nimic nu se inventează.\n// Glosarul (GlosarMeniu) este inserat mai jos de n8n/genereaza.js din n8n/cod/glosar-meniu.js.\nconst GlosarMeniu = (function () { const module = { exports: {} };\n/* Glosar RO → EN / BG pentru numele preparatelor din meniul zilei (M8).\n   Traducere deterministă, fără internet și fără cheie: întâi fraze întregi din glosar, apoi compunere\n   („X cu Y și Z\", „X la cuptor\", „X prăjit\") din bucăți cunoscute. Ce nu se poate traduce complet rămâne\n   null (site-ul arată atunci numele în română, marcat lang=\"ro\"). Nu inventează: un cuvânt necunoscut\n   oprește traducerea acelui preparat, nu produce o traducere pe jumătate.\n   Sursa pentru nodul Code „Traduceri\" din n8n/meniu-zilei.json (n8n/genereaza.js îl inserează);\n   se testează separat: node tests/traduceri.test.js. Fără dependențe; Node 18+ și browser. */\n(function (root) {\n  'use strict';\n\n  // ---- normalizare: minuscule, fără diacritice (acceptă și textul scris fără ă/ș/ț), spații simple ----\n  function norm(s) {\n    return String(s || '').toLowerCase()\n      .replace(/[ăâ]/g, 'a').replace(/î/g, 'i').replace(/[șş]/g, 's').replace(/[țţ]/g, 't')\n      .replace(/[“”„\"'’]/g, '').replace(/\\s*[.!]+\\s*$/, '').replace(/\\s+/g, ' ').trim();\n  }\n  function cap(s) { s = String(s || '').trim(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }\n\n  // ---- substantive / fraze: cheie RO (fără diacritice) → { en, bg, g } ; g = genul BG (m/f/n/pl) pentru acordul adjectivelor ----\n  var G = {};\n  function f(ro, en, bg, g) { ro.split('|').forEach(function (k) { G[norm(k)] = { en: en, bg: bg, g: g || 'm' }; }); }\n\n  // ciorbe și supe\n  f('ciorba de perisoare|bors de perisoare|ciorba cu perisoare', 'meatball sour soup', 'супа топчета', 'f');\n  f('ciorba de burta', 'tripe soup', 'шкембе чорба', 'f');\n  f('ciorba de vacuta|ciorba de vita|bors de vacuta', 'beef sour soup', 'телешка чорба', 'f');\n  f('ciorba de pui|bors de pui', 'chicken sour soup', 'пилешка чорба', 'f');\n  f('ciorba de legume|bors de legume', 'vegetable sour soup', 'зеленчукова чорба', 'f');\n  f('ciorba de fasole|bors de fasole|ciorba de fasole boabe', 'bean sour soup', 'бобена чорба', 'f');\n  f('ciorba de fasole cu afumatura|ciorba de fasole cu ciolan|ciorba de fasole cu costita', 'bean soup with smoked pork', 'бобена чорба с пушено месо', 'f');\n  f('ciorba de peste|bors de peste', 'fish sour soup', 'рибена чорба', 'f');\n  f('ciorba de cartofi', 'potato sour soup', 'картофена чорба', 'f');\n  f('ciorba taraneasca|ciorba taraneasca de vacuta|ciorba taraneasca de vita', 'peasant-style beef and vegetable soup', 'селска чорба с телешко', 'f');\n  f('ciorba taraneasca de pui', 'peasant-style chicken and vegetable soup', 'селска чорба с пиле', 'f');\n  f('ciorba radauteana', 'Rădăuți-style chicken soup with sour cream', 'пилешка чорба по радауцки', 'f');\n  f('ciorba de loboda', 'orach sour soup', 'чорба от лобода', 'f');\n  f('ciorba de salata|ciorba de salata verde', 'lettuce sour soup', 'чорба от зелена салата', 'f');\n  f('ciorba de miel', 'lamb sour soup', 'агнешка чорба', 'f');\n  f('ciorba de porc', 'pork sour soup', 'свинска чорба', 'f');\n  f('ciorba de ciuperci', 'mushroom sour soup', 'гъбена чорба', 'f');\n  f('ciorba de dovlecei|ciorba de dovlecel', 'zucchini sour soup', 'чорба от тиквички', 'f');\n  f('ciorba de varza', 'cabbage sour soup', 'зелева чорба', 'f');\n  f('ciorba de curcan', 'turkey sour soup', 'пуешка чорба', 'f');\n  f('ciorba de oase', 'bone broth sour soup', 'чорба от кокал', 'f');\n  f('ciorba de sfecla', 'beetroot sour soup', 'чорба от червено цвекло', 'f');\n  f('ciorba de stevie', 'sorrel sour soup', 'чорба от лапад', 'f');\n  f('ciorba de curechi', 'cabbage sour soup', 'зелева чорба', 'f');\n  f('ciorba', 'sour soup', 'чорба', 'f');\n  f('supa de pui cu taitei|supa de pui cu taietei|supa cu taitei', 'chicken noodle soup', 'пилешка супа с фиде', 'f');\n  f('supa de pui cu galuste|supa de galuste|supa cu galuste', 'chicken soup with semolina dumplings', 'пилешка супа с кнедли от грис', 'f');\n  f('supa de pui', 'chicken soup', 'пилешка супа', 'f');\n  f('supa de vita|supa de vacuta', 'beef soup', 'телешка супа', 'f');\n  f('supa crema de legume', 'cream of vegetable soup', 'крем супа от зеленчуци', 'f');\n  f('supa crema de ciuperci', 'cream of mushroom soup', 'крем супа от гъби', 'f');\n  f('supa crema de dovleac', 'cream of pumpkin soup', 'крем супа от тиква', 'f');\n  f('supa crema de linte', 'cream of lentil soup', 'крем супа от леща', 'f');\n  f('supa de rosii', 'tomato soup', 'доматена супа', 'f');\n  f('supa de legume', 'vegetable soup', 'зеленчукова супа', 'f');\n  f('supa de linte', 'lentil soup', 'супа от леща', 'f');\n  f('supa', 'soup', 'супа', 'f');\n\n  // feluri principale\n  f('sarmale cu mamaliga|sarmale cu mamaliguta', 'cabbage rolls with polenta', 'сарми с качамак', 'pl');\n  f('sarmale|sarmalute|sarmale in foi de varza', 'cabbage rolls', 'сарми', 'pl');\n  f('sarmale in foi de vita', 'vine-leaf rolls', 'лозови сарми', 'pl');\n  f('mici|mititei', 'grilled minced-meat rolls (mici)', 'кебапчета (мичи)', 'pl');\n  f('snitel de pui', 'chicken schnitzel', 'пилешки шницел', 'm');\n  f('snitel de porc', 'pork schnitzel', 'свински шницел', 'm');\n  f('snitel de curcan', 'turkey schnitzel', 'пуешки шницел', 'm');\n  f('snitel', 'schnitzel', 'шницел', 'm');\n  f('pui', 'chicken', 'пиле', 'n');\n  f('pulpe de pui|pulpa de pui|pulpe pui', 'chicken legs', 'пилешки бутчета', 'pl');\n  f('aripioare de pui|aripioare', 'chicken wings', 'пилешки крилца', 'pl');\n  f('piept de pui', 'chicken breast', 'пилешко филе', 'n');\n  f('ceafa de porc', 'pork neck', 'свински врат', 'm');\n  f('cotlet de porc', 'pork chop', 'свинска пържола', 'f');\n  f('muschi de porc|muschiulet de porc', 'pork tenderloin', 'свинско бонфиле', 'n');\n  f('friptura de porc', 'roast pork', 'свинско печено', 'n');\n  f('friptura de pui', 'roast chicken', 'пилешко печено', 'n');\n  f('friptura de vita', 'roast beef', 'телешко печено', 'n');\n  f('tocanita de pui|tocana de pui', 'chicken stew', 'пилешка яхния', 'f');\n  f('tocanita de porc|tocana de porc', 'pork stew', 'свинска яхния', 'f');\n  f('tocanita de vita|tocana de vita', 'beef stew', 'телешка яхния', 'f');\n  f('tocanita de legume|tocana de legume', 'vegetable stew', 'зеленчукова яхния', 'f');\n  f('tochitura|tochitura moldoveneasca|tochitura cu mamaliga', 'tochitură (pork stew with polenta, egg and cheese)', 'точитура (свинска яхния с качамак, яйце и сирене)', 'f');\n  f('gulas|gulas de vita', 'goulash', 'гулаш', 'm');\n  f('chiftele|chiftelute|parjoale', 'meatballs', 'кюфтета', 'pl');\n  f('chiftele marinate|chiftelute marinate', 'meatballs in tomato sauce', 'кюфтета в доматен сос', 'pl');\n  f('crap', 'carp', 'шаран', 'm');\n  f('peste', 'fish', 'риба', 'f');\n  f('pastrav', 'trout', 'пъстърва', 'f');\n  f('somn', 'catfish', 'сом', 'm');\n  f('salau', 'pikeperch', 'бяла риба', 'f');\n  f('macrou', 'mackerel', 'скумрия', 'f');\n  f('plachie de crap|crap plachie', 'carp plaki (baked with vegetables)', 'шаран плакия', 'm');\n  f('saramura de crap', 'grilled carp in brine', 'шаран в саламура', 'm');\n  f('musaca|musaca de cartofi', 'potato moussaka', 'картофена мусака', 'f');\n  f('musaca de vinete', 'eggplant moussaka', 'мусака с патладжан', 'f');\n  f('varza calita', 'braised cabbage', 'задушено зеле', 'n');\n  f('varza calita cu ciolan|varza cu ciolan', 'braised cabbage with smoked pork knuckle', 'задушено зеле с джолан', 'n');\n  f('varza calita cu carnati|varza cu carnati', 'braised cabbage with sausages', 'задушено зеле с наденица', 'n');\n  f('ciolan afumat|ciolan', 'smoked pork knuckle', 'пушен джолан', 'm');\n  f('fasole batuta', 'bean paste', 'бобено пюре', 'n');\n  f('iahnie de fasole|fasole iahnie|mancare de fasole|fasole scazuta', 'bean stew', 'боб яхния', 'f');\n  f('iahnie de fasole cu carnati|fasole cu carnati', 'bean stew with sausages', 'боб яхния с наденица', 'f');\n  f('fasole cu ciolan|iahnie de fasole cu ciolan', 'bean stew with smoked pork knuckle', 'боб яхния с джолан', 'f');\n  f('mancare de mazare|mazare scazuta', 'pea stew', 'грахова яхния', 'f');\n  f('mancare de mazare cu pui|mazare cu pui', 'pea stew with chicken', 'грахова яхния с пиле', 'f');\n  f('mancare de fasole verde|fasole verde scazuta', 'green bean stew', 'яхния от зелен фасул', 'f');\n  f('mancare de cartofi|cartofi scazuti', 'potato stew', 'картофена яхния', 'f');\n  f('mancare de dovlecei', 'zucchini stew', 'яхния от тиквички', 'f');\n  f('mancare de ciuperci', 'mushroom stew', 'гъбена яхния', 'f');\n  f('ghiveci de legume|ghiveci', 'vegetable stew (ghiveci)', 'зеленчуков гювеч', 'm');\n  f('ardei umpluti', 'stuffed peppers', 'пълнени чушки', 'pl');\n  f('dovlecei umpluti', 'stuffed zucchini', 'пълнени тиквички', 'pl');\n  f('rosii umplute', 'stuffed tomatoes', 'пълнени домати', 'pl');\n  f('paste carbonara|spaghete carbonara', 'pasta carbonara', 'паста карбонара', 'f');\n  f('paste bolognese|spaghete bolognese', 'pasta bolognese', 'паста болонезе', 'f');\n  f('paste cu sos de rosii|spaghete cu sos de rosii', 'pasta with tomato sauce', 'паста с доматен сос', 'f');\n  f('paste cu pui', 'pasta with chicken', 'паста с пиле', 'f');\n  f('paste|spaghete|macaroane', 'pasta', 'паста', 'f');\n  f('pilaf de pui|pilaf cu pui', 'chicken pilaf', 'пилаф с пиле', 'm');\n  f('pilaf|pilaf de orez', 'rice pilaf', 'пилаф', 'm');\n  f('ostropel de pui|pui ostropel', 'chicken ostropel (in garlic and tomato sauce)', 'пиле остропел (в чеснов доматен сос)', 'n');\n  f('pui cu smantana|pui in sos de smantana', 'chicken in sour-cream sauce', 'пиле със сметанов сос', 'n');\n  f('pui cu ciuperci', 'chicken with mushrooms', 'пиле с гъби', 'n');\n  f('ficatei de pui|ficatei', 'chicken livers', 'пилешки дробчета', 'pl');\n  f('ficatei de pui cu ceapa|ficatei cu ceapa', 'chicken livers with onions', 'пилешки дробчета с лук', 'pl');\n  f('drob de miel|drob', 'lamb drob (lamb offal loaf)', 'дроб сарма от агнешко', 'm');\n  f('carnati|carnaciori', 'sausages', 'наденица', 'f');\n  f('carnati de casa', 'homemade sausages', 'домашна наденица', 'f');\n  f('rasol de vita|rasol', 'boiled beef', 'варено телешко', 'n');\n  f('limba cu masline', 'beef tongue with olives', 'език с маслини', 'm');\n  f('cordon bleu', 'cordon bleu', 'кордон бльо', 'n');\n  f('papanasi', 'papanași (fried cheese doughnuts with sour cream and jam)', 'папанаш (пържени понички със сирене, сметана и конфитюр)', 'pl');\n  f('clatite', 'pancakes', 'палачинки', 'pl');\n  f('clatite cu gem|clatite cu dulceata', 'pancakes with jam', 'палачинки с конфитюр', 'pl');\n  f('clatite cu ciocolata', 'pancakes with chocolate', 'палачинки с шоколад', 'pl');\n  f('clatite cu branza', 'pancakes with cheese', 'палачинки със сирене', 'pl');\n  f('pizza', 'pizza', 'пица', 'f');\n  f('omleta', 'omelette', 'омлет', 'm');\n  f('mamaliga cu branza si smantana', 'polenta with cheese and sour cream', 'качамак със сирене и сметана', 'm');\n  f('bulz', 'bulz (polenta balls with cheese)', 'булз (качамак със сирене)', 'm');\n  f('vinete', 'eggplant', 'патладжан', 'm');\n  f('salata de vinete', 'eggplant salad', 'салата от патладжан', 'f');\n  f('zacusca', 'zacuscă (vegetable spread)', 'закуска (зеленчуков пастет)', 'f');\n\n  // garnituri\n  f('cartofi prajiti', 'french fries', 'пържени картофи', 'pl');\n  f('cartofi natur|cartofi fierti', 'boiled potatoes', 'варени картофи', 'pl');\n  f('cartofi la cuptor|cartofi copti', 'oven-baked potatoes', 'печени картофи', 'pl');\n  f('cartofi taranesti', 'country-style potatoes', 'селски картофи', 'pl');\n  f('cartofi gratinati', 'potato gratin', 'картофи огретен', 'pl');\n  f('cartofi wedges', 'potato wedges', 'картофи уеджис', 'pl');\n  f('cartofi', 'potatoes', 'картофи', 'pl');\n  f('piure de cartofi|piure|pireu|pireu de cartofi', 'mashed potatoes', 'картофено пюре', 'n');\n  f('orez', 'rice', 'ориз', 'm');\n  f('orez cu legume', 'rice with vegetables', 'ориз със зеленчуци', 'm');\n  f('orez sarbesc', 'Serbian-style rice', 'ориз по сръбски', 'm');\n  f('legume', 'vegetables', 'зеленчуци', 'pl');\n  f('legume la gratar', 'grilled vegetables', 'зеленчуци на скара', 'pl');\n  f('legume sote|legume la tigaie', 'sautéed vegetables', 'задушени зеленчуци', 'pl');\n  f('legume mexicane', 'mixed vegetables', 'зеленчуков микс', 'm');\n  f('mazare sote|mazare', 'sautéed peas', 'задушен грах', 'm');\n  f('fasole verde sote|fasole verde', 'sautéed green beans', 'задушен зелен фасул', 'm');\n  f('mamaliga|mamaliguta', 'polenta', 'качамак', 'm');\n  f('mujdei|mujdei de usturoi', 'garlic sauce', 'чеснов сос', 'm');\n  f('smantana', 'sour cream', 'сметана', 'f');\n  f('branza', 'cheese', 'сирене', 'n');\n  f('ardei iute', 'hot pepper', 'люта чушка', 'f');\n  f('paine', 'bread', 'хляб', 'm');\n  f('ceapa', 'onions', 'лук', 'm');\n  f('ciuperci', 'mushrooms', 'гъби', 'pl');\n  f('ciuperci sote', 'sautéed mushrooms', 'задушени гъби', 'pl');\n  f('sos de rosii', 'tomato sauce', 'доматен сос', 'm');\n  f('sos de usturoi', 'garlic sauce', 'чеснов сос', 'm');\n  f('sos de ciuperci', 'mushroom sauce', 'гъбен сос', 'm');\n  f('sos', 'sauce', 'сос', 'm');\n  f('spanac', 'spinach', 'спанак', 'm');\n  f('spanac cu ou', 'spinach with egg', 'спанак с яйце', 'm');\n  f('ou|oua|ou ochi', 'fried egg', 'пържено яйце', 'n');\n  f('broccoli', 'broccoli', 'броколи', 'n');\n  f('conopida', 'cauliflower', 'карфиол', 'm');\n  f('conopida pane', 'breaded cauliflower', 'паниран карфиол', 'm');\n  f('cascaval pane', 'breaded cheese', 'панирано кашкавал', 'n');\n  f('cascaval', 'cheese', 'кашкавал', 'm');\n  f('ardei copti', 'roasted peppers', 'печени чушки', 'pl');\n  f('castraveti', 'cucumbers', 'краставици', 'pl');\n  f('rosii', 'tomatoes', 'домати', 'pl');\n  f('masline', 'olives', 'маслини', 'pl');\n  f('lamaie', 'lemon', 'лимон', 'm');\n\n  // salate și murături\n  f('salata de varza|salata de varza alba', 'cabbage salad', 'зелева салата', 'f');\n  f('salata de varza rosie', 'red cabbage salad', 'салата от червено зеле', 'f');\n  f('salata verde', 'green salad', 'зелена салата', 'f');\n  f('salata de rosii', 'tomato salad', 'доматена салата', 'f');\n  f('salata de castraveti', 'cucumber salad', 'салата от краставици', 'f');\n  f('salata de rosii si castraveti|salata de rosii cu castraveti', 'tomato and cucumber salad', 'салата от домати и краставици', 'f');\n  f('salata de sfecla|salata de sfecla rosie', 'beetroot salad', 'салата от червено цвекло', 'f');\n  f('salata de muraturi', 'pickle salad', 'салата от туршия', 'f');\n  f('salata asortata', 'mixed salad', 'салата асорти', 'f');\n  f('salata de vara', 'summer salad (tomatoes, cucumbers, peppers)', 'лятна салата', 'f');\n  f('salata orientala', 'potato salad with onions, olives and egg', 'ориенталска салата (картофи, лук, маслини, яйце)', 'f');\n  f('salata de boeuf|salata boeuf|salata de beouf', 'boeuf salad (potatoes, vegetables, meat, mayonnaise)', 'руска салата с месо', 'f');\n  f('salata de ardei copti', 'roasted pepper salad', 'салата от печени чушки', 'f');\n  f('salata de ceapa', 'onion salad', 'салата от лук', 'f');\n  f('salata greceasca', 'Greek salad', 'гръцка салата', 'f');\n  f('salata', 'salad', 'салата', 'f');\n  f('muraturi|muraturi asortate', 'mixed pickles', 'туршия', 'f');\n  f('castraveti murati', 'pickled cucumbers', 'кисели краставички', 'pl');\n  f('gogonele|gogonele murate', 'pickled green tomatoes', 'зелени домати туршия', 'pl');\n  f('varza murata', 'sauerkraut', 'кисело зеле', 'n');\n  f('ardei murati', 'pickled peppers', 'кисели чушки', 'pl');\n  f('gogosari murati|gogosari', 'pickled bell peppers', 'кисели пиперки', 'pl');\n\n  // desert\n  f('prajitura|prajitura de casa', 'cake slice', 'сладкиш', 'm');\n  f('tort', 'cake', 'торта', 'f');\n  f('inghetata', 'ice cream', 'сладолед', 'm');\n  f('fructe', 'fruit', 'плодове', 'pl');\n  f('compot', 'stewed fruit (compote)', 'компот', 'm');\n  f('placinta cu branza|placinta cu branza dulce', 'sweet cheese pie', 'баница със сладко сирене', 'f');\n  f('placinta cu mere', 'apple pie', 'щрудел с ябълки', 'm');\n  f('placinta cu dovleac', 'pumpkin pie', 'тиквеник', 'm');\n  f('placinta', 'pie', 'баница', 'f');\n  f('cozonac', 'cozonac (sweet bread)', 'козунак', 'm');\n  f('gogosi', 'doughnuts', 'понички', 'pl');\n  f('iaurt', 'yoghurt', 'кисело мляко', 'n');\n  f('orez cu lapte', 'rice pudding', 'мляко с ориз', 'n');\n  f('ecler', 'éclair', 'еклер', 'm');\n  f('amandina', 'amandine (chocolate cream cake)', 'амандина (шоколадов сладкиш)', 'f');\n  f('savarina', 'savarin (rum-soaked cake with whipped cream)', 'саварина', 'f');\n  f('cafea', 'coffee', 'кафе', 'n');\n\n  // ---- adjective: forme RO → { en, bg: { m, f, n, pl } } ; în EN și BG adjectivul stă înaintea substantivului ----\n  var A = {};\n  function a(ro, en, bg) { ro.split('|').forEach(function (k) { A[norm(k)] = { en: en, bg: bg }; }); }\n  a('prajit|prajita|prajiti|prajite', 'fried', { m: 'пържен', f: 'пържена', n: 'пържено', pl: 'пържени' });\n  a('copt|coapta|copti|coapte', 'baked', { m: 'печен', f: 'печена', n: 'печено', pl: 'печени' });\n  a('umplut|umpluta|umpluti|umplute', 'stuffed', { m: 'пълнен', f: 'пълнена', n: 'пълнено', pl: 'пълнени' });\n  a('afumat|afumata|afumati|afumate', 'smoked', { m: 'пушен', f: 'пушена', n: 'пушено', pl: 'пушени' });\n  a('fiert|fiarta|fierti|fierte', 'boiled', { m: 'варен', f: 'варена', n: 'варено', pl: 'варени' });\n  a('marinat|marinata|marinati|marinate', 'marinated', { m: 'мариновани', f: 'маринована', n: 'мариновано', pl: 'мариновани' });\n  a('picant|picanta|picanti|picante', 'spicy', { m: 'лют', f: 'люта', n: 'люто', pl: 'люти' });\n  a('crocant|crocanta|crocanti|crocante', 'crispy', { m: 'хрупкав', f: 'хрупкава', n: 'хрупкаво', pl: 'хрупкави' });\n  a('sote|sotat|sotata|sotati|sotate', 'sautéed', { m: 'задушен', f: 'задушена', n: 'задушено', pl: 'задушени' });\n  a('gratinat|gratinata|gratinati|gratinate', 'gratinated', { m: 'огретен', f: 'огретен', n: 'огретен', pl: 'огретен' });\n  a('proaspat|proaspata|proaspeti|proaspete', 'fresh', { m: 'пресен', f: 'прясна', n: 'прясно', pl: 'пресни' });\n  a('de casa', 'homemade', { m: 'домашен', f: 'домашна', n: 'домашно', pl: 'домашни' });\n  a('taranesc|taraneasca|taranesti', 'country-style', { m: 'селски', f: 'селска', n: 'селско', pl: 'селски' });\n\n  // ---- moduri de gătit puse DUPĂ substantiv în RO („pui la cuptor\"): EN prefix, BG sufix ----\n  var S = {};\n  function s(ro, en, bg) { ro.split('|').forEach(function (k) { S[norm(k)] = { en: en, bg: bg }; }); }\n  s('la cuptor|la cuptor cu lemne', 'oven-baked', 'на фурна');\n  s('la gratar|la grill|pe gratar|pe grill|gril|grill', 'grilled', 'на скара');\n  s('la tigaie|la tava', 'pan-fried', 'на тиган');\n  s('pane', 'breaded', 'пане');\n  s('la abur|la aburi', 'steamed', 'на пара');\n  s('in sos de rosii', 'in tomato sauce', 'в доматен сос');\n  s('in sos de smantana', 'in sour-cream sauce', 'в сметанов сос');\n  s('in sos de ciuperci', 'in mushroom sauce', 'в гъбен сос');\n  s('in sos de usturoi', 'in garlic sauce', 'в чеснов сос');\n  s('cu mujdei', 'with garlic sauce', 'с чеснов сос'); // ca sufix de stil, doar când nu s-a putut despărți cu „cu\"\n\n  // în bulgară „с\" devine „със\" înaintea cuvintelor care încep cu с/з\n  function bgCu(urmator) { return /^[сз]/i.test(urmator) ? 'със' : 'с'; }\n\n  // ---- traducerea unei bucăți (fără „cu\" / „și\") ----\n  function bucata(ro) {\n    var k = norm(ro);\n    if (!k) return null;\n    if (G[k]) return { en: G[k].en, bg: G[k].bg };\n    var cuv = k.split(' ');\n    // 1) substantiv + mod de gătit la sfârșit: „pui la cuptor\", „peste prajit\" (adjectiv)\n    for (var n = Math.min(4, cuv.length - 1); n >= 1; n--) {\n      var coada = cuv.slice(cuv.length - n).join(' '), capul = cuv.slice(0, cuv.length - n).join(' ');\n      var cap_ = G[capul];\n      if (!cap_ || / (?:cu|si) /.test(capul)) continue; // o frază compusă („varză călită cu ciolan\") nu primește adjective în coadă\n      if (S[coada]) return { en: /^(in|with) /.test(S[coada].en) ? cap_.en + ' ' + S[coada].en : S[coada].en + ' ' + cap_.en, bg: cap_.bg + ' ' + S[coada].bg };\n      if (A[coada]) return { en: A[coada].en + ' ' + cap_.en, bg: (A[coada].bg[cap_.g] || A[coada].bg.m) + ' ' + cap_.bg };\n    }\n    // 2) adjectiv înainte („afumat ciolan\" e rar în română; „mica\" listă de prefixe)\n    for (var p = 1; p <= 2 && p < cuv.length; p++) {\n      var pref = cuv.slice(0, p).join(' '), rest = cuv.slice(p).join(' ');\n      if (A[pref] && G[rest]) return { en: A[pref].en + ' ' + G[rest].en, bg: (A[pref].bg[G[rest].g] || A[pref].bg.m) + ' ' + G[rest].bg };\n    }\n    return null;\n  }\n\n  // ---- un preparat întreg: „X cu Y și Z\", „X, Y\" ----\n  function preparat(ro) {\n    var k = norm(ro);\n    if (!k) return null;\n    var direct = bucata(k);\n    if (direct) return { en: cap(direct.en), bg: cap(direct.bg) };\n    var m = /^(.+?) (?:cu|si|,) (.+)$/.exec(k.replace(/,\\s*/g, ' , ').replace(/\\s+/g, ' '));\n    if (!m) return null;\n    var capul = bucata(m[1]);\n    if (!capul) return null;\n    var parti = m[2].split(/ (?:si|,) /).map(function (x) { return bucata(x); });\n    if (parti.some(function (x) { return !x; })) return null;\n    var legatura = /^(.+?) cu /.test(k) ? 'cu' : 'si';\n    var en = capul.en + (legatura === 'cu' ? ' with ' : ' and ') + parti.map(function (x) { return x.en; }).join(' and ');\n    var bg = capul.bg + ' ' + (legatura === 'cu' ? bgCu(parti[0].bg) : 'и') + ' ' + parti.map(function (x) { return x.bg; }).join(' и ');\n    return { en: cap(en), bg: cap(bg) };\n  }\n\n  // ---- lista: întoarce { en: [..|null], bg: [..|null], complet: { en, bg }, netraduse: [...] } ----\n  function traduceMeniu(nume) {\n    var lista = Array.isArray(nume) ? nume : [];\n    var en = [], bg = [], netraduse = [];\n    lista.forEach(function (x) {\n      var n = typeof x === 'string' ? x : (x && x.nume) || '';\n      var t = preparat(n);\n      en.push(t ? t.en : null); bg.push(t ? t.bg : null);\n      if (!t) netraduse.push(n);\n    });\n    return { en: en, bg: bg, complet: { en: en.every(Boolean) && en.length > 0, bg: bg.every(Boolean) && bg.length > 0 }, netraduse: netraduse };\n  }\n\n  var api = { norm: norm, bucata: bucata, preparat: preparat, traduceMeniu: traduceMeniu, _glosar: G, _adjective: A, _stiluri: S };\n  if (typeof module !== 'undefined' && module.exports) module.exports = api;\n  else root.GlosarMeniu = api;\n})(typeof globalThis !== 'undefined' ? globalThis : this);\n\nreturn module.exports; })();\n\nconst cfg = $('Config').first().json;\nconst cmd = $('Interpretează mesajul').first().json;\nconst mod = String(cfg.traducere || 'glosar').trim().toLowerCase();\nconst nume = (cmd.meniu && Array.isArray(cmd.meniu.preparate) ? cmd.meniu.preparate : []).map(p => (p && p.nume) || '');\n\nif (mod === 'nu' || !nume.length) return [{ json: { traduceri: null, sursa: { en: null, bg: null }, netraduse: [] } }];\n\n// răspunsul DeepL: { translations: [ { detected_source_language, text }, ... ] } în aceeași ordine cu textele trimise\nfunction dinDeepl(numeNod) {\n  try {\n    const j = $(numeNod).first().json;\n    const t = j && Array.isArray(j.translations) ? j.translations : null;\n    if (!t || t.length !== nume.length) return null;\n    const out = t.map(x => (x && typeof x.text === 'string' && x.text.trim()) ? x.text.trim() : null);\n    return out.some(Boolean) ? out : null;\n  } catch (e) { return null; } // nodul nu a rulat (modul nu e 'deepl') sau a dat eroare → rezerva este glosarul\n}\n\nconst glosar = GlosarMeniu.traduceMeniu(nume);\nconst rezultat = { en: null, bg: null }, sursa = { en: null, bg: null };\nfor (const l of ['en', 'bg']) {\n  const deepl = mod === 'deepl' ? dinDeepl(l === 'en' ? 'DeepL EN' : 'DeepL BG') : null;\n  const lista = nume.map((_, i) => (deepl && deepl[i]) || glosar[l][i] || null);\n  if (!lista.some(Boolean)) continue;\n  rezultat[l] = { preparate: lista };\n  sursa[l] = deepl ? (lista.every((x, i) => deepl[i]) ? 'deepl' : 'mixt') : 'glosar';\n}\nconst netraduse = nume.filter((_, i) => !((rezultat.en && rezultat.en.preparate[i]) && (rezultat.bg && rezultat.bg.preparate[i])));\nconst traduceri = (rezultat.en || rezultat.bg) ? Object.assign({}, rezultat.en ? { en: rezultat.en } : {}, rezultat.bg ? { bg: rezultat.bg } : {}) : null;\nreturn [{ json: { traduceri, sursa, netraduse } }];\n"
+      },
+      "id": "m1-10",
+      "name": "Traduceri",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        320
+      ],
+      "notes": "Glosar RO→EN/BG local (n8n/cod/glosar-meniu.js) sau răspunsurile DeepL; ce nu se poate traduce rămâne null (site-ul arată româna). Corecții manuale: „en 2: …\" / „bg 2: …\"."
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "m1-11",
+      "name": "Descarcă poza",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "width": 1200,
+        "height": 1200,
+        "resizeOption": "onlyIfLarger",
+        "options": {
+          "format": "jpeg",
+          "quality": 82
+        }
+      },
+      "id": "m1-12",
+      "name": "Redimensionează",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        740,
+        100
+      ],
+      "notes": "Max 1200 px pe latura mare, JPEG 82%. Pentru ≤200 KB garantat, scade quality la 75."
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "data/meniu-zilei.json",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "id": "m1-13",
+      "name": "Citește JSON curent",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1420,
+        320
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "notes": "Dacă fișierul nu există încă, continuă cu eroarea în item; „Îmbină\" tratează cazul."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nodul Code „Îmbină\" (n8n). Intrare: rezultatul nodului GitHub „Citește JSON curent\" (câmpul `content`\n// în base64, sau o eroare dacă fișierul nu există încă). Citește comanda din „Interpretează mesajul\" și\n// întoarce ce trebuie scris în data/meniu-zilei.json și ce mesaj primește Sorin pe Telegram:\n//   { scrie, continut, commit, are_poza, cale_poza, mesaj, chat_id }\n// Dacă nu e nimic de scris și nimic de spus (trigger-ul de la 16:00 când meniul e deja închis) nu întoarce niciun item.\nconst cfg = $('Config').first().json;\nconst cmd = $('Interpretează mesajul').first().json;\nconst r = ($input.first() && $input.first().json) || {};\nconst fus = cfg.fus_orar || 'Europe/Bucharest';\nconst LUNI = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];\n\nfunction pad(n) { return (n < 10 ? '0' : '') + n; }\nfunction isoCuOffset(d) { // '2026-10-20T11:04:00+03:00' în fusul restaurantului\n  try {\n    const p = {};\n    new Intl.DateTimeFormat('en-GB', { timeZone: fus, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })\n      .formatToParts(d).forEach(x => { p[x.type] = x.value; });\n    let off = '+02:00';\n    try { const o = new Intl.DateTimeFormat('en-GB', { timeZone: fus, timeZoneName: 'longOffset' }).formatToParts(d).find(x => x.type === 'timeZoneName').value; const m = /GMT([+-]\\d{2}:\\d{2})/.exec(o); if (m) off = m[1]; } catch (e) {}\n    return `${p.year}-${p.month}-${p.day}T${p.hour % 24 === 24 ? '00' : p.hour}:${p.minute}:${p.second}${off}`;\n  } catch (e) { return d.toISOString(); }\n}\nfunction dataRo(iso) { const p = String(iso || '').split('-'); return p.length === 3 ? `${+p[2]} ${LUNI[+p[1] - 1]}` : iso; }\n\nlet existent = null;\ntry { if (r && r.content) existent = JSON.parse(Buffer.from(String(r.content).replace(/\\n/g, ''), 'base64').toString('utf8')); } catch (e) { existent = null; }\n\nconst acum = new Date();\nconst actualizat = isoCuOffset(acum);\nlet nou = null, mesaj = '', scrie = false, poza = null;\n\nswitch (cmd.actiune) {\n  case 'meniu': {\n    const m = cmd.meniu;\n    const pastreazaPoze = existent && existent.data === m.data && Array.isArray(existent.poze);\n    // traducerile EN/BG (M8) vin din nodul „Traduceri\" (glosar local sau DeepL); lipsesc dacă Config.traducere = 'nu'\n    let trad = null, sursaTrad = null, netraduse = [];\n    try { const t = $('Traduceri').first().json; if (t && t.traduceri) { trad = t.traduceri; sursaTrad = t.sursa || null; netraduse = t.netraduse || []; } } catch (e) { trad = null; }\n    nou = {\n      actualizat, data: m.data, valabil_pana: m.valabil_pana, pret: m.pret, moneda: m.moneda,\n      preparate: m.preparate, poze: pastreazaPoze ? existent.poze : [],\n      text_facebook: m.text_facebook, text_original: m.text_original, sursa: 'telegram'\n    };\n    if (trad) nou.traduceri = trad;\n    scrie = true;\n    const linieTrad = !trad ? '' : netraduse.length\n      ? `\\n🌐 EN/BG: ${netraduse.length === m.preparate.length ? 'netradus' : 'parțial'} (${netraduse.map(x => '„' + x + '\"').join(', ')} rămâne în română). Corectezi cu <code>en 2: …</code> / <code>bg 2: …</code>.`\n      : `\\n🌐 EN/BG: tradus automat (${sursaTrad && sursaTrad.en === 'deepl' ? 'DeepL' : 'glosar'}). Corectezi cu <code>en 2: …</code> / <code>bg 2: …</code>.`;\n    mesaj = `✅ Meniul pentru <b>${dataRo(m.data)}</b>${m.data_explicita ? '' : ' (dată dedusă)'} ajunge pe site în ~1 minut.\\n`\n      + m.preparate.map((p, i) => `${i + 1}. ${p.nume}${p.alergeni.length ? ' — <i>' + p.alergeni.join(', ') + '</i>' : ' — <i>fără alergeni</i>'}${p.alergeni_automat ? ' (automat)' : ''}`).join('\\n')\n      + `\\n${m.pret} ${m.moneda}`\n      + linieTrad\n      + `\\n\\nCorectezi alergenii cu <code>alergeni 1: gluten, ou</code>. Trimite pozele când sunt gata. <code>gata</code> închide meniul mai devreme.`\n      + (cfg.site_url ? `\\n${cfg.site_url}/#meniul-zilei` : '');\n    break;\n  }\n  case 'poza': {\n    if (!existent || !existent.data) { mesaj = '⚠️ Nu există un meniu pe site. Trimite întâi textul meniului, apoi pozele.'; break; }\n    const n = (Array.isArray(existent.poze) ? existent.poze.length : 0) + 1;\n    if (n > 6) { mesaj = '⚠️ Sunt deja 6 poze la meniul de azi; site-ul arată primele 3.'; break; }\n    poza = `data/poze/${existent.data}-${n}.jpg`;\n    nou = Object.assign({}, existent, { actualizat, poze: (existent.poze || []).concat([poza]) });\n    scrie = true;\n    mesaj = `📷 Poza ${n} a fost adăugată la meniul din ${dataRo(existent.data)}.`;\n    break;\n  }\n  case 'gata': {\n    const dinProgram = cmd.sursa === 'program';\n    if (!existent || !existent.valabil_pana) { mesaj = dinProgram ? '' : 'Nu există niciun meniu de închis.'; break; }\n    if (!(Date.parse(existent.valabil_pana) > acum.getTime())) { mesaj = dinProgram ? '' : 'Meniul era deja închis.'; break; }\n    nou = Object.assign({}, existent, { actualizat, valabil_pana: actualizat });\n    scrie = true;\n    mesaj = dinProgram ? `🕓 Meniul din ${dataRo(existent.data)} s-a închis automat la ${cfg.ora_inchidere || '16:00'}.` : `🕓 Meniul din ${dataRo(existent.data)} a fost închis; site-ul arată acum mesajul de rezervă.`;\n    break;\n  }\n  case 'alergeni': {\n    if (!existent || !Array.isArray(existent.preparate) || !existent.preparate[cmd.index]) { mesaj = `⚠️ Nu există preparatul ${cmd.index + 1} în meniul curent.`; break; }\n    nou = JSON.parse(JSON.stringify(existent));\n    nou.actualizat = actualizat;\n    nou.preparate[cmd.index].alergeni = cmd.alergeni || [];\n    delete nou.preparate[cmd.index].alergeni_automat;\n    scrie = true;\n    mesaj = `✅ Alergenii pentru „${nou.preparate[cmd.index].nume}\": ${(cmd.alergeni || []).join(', ') || 'niciunul'}.`;\n    break;\n  }\n  case 'traducere': { // „en 2: Fried carp with polenta\" (M8)\n    if (!existent || !Array.isArray(existent.preparate) || !existent.preparate[cmd.index]) { mesaj = `⚠️ Nu există preparatul ${cmd.index + 1} în meniul curent.`; break; }\n    nou = JSON.parse(JSON.stringify(existent));\n    nou.actualizat = actualizat;\n    nou.traduceri = nou.traduceri && typeof nou.traduceri === 'object' ? nou.traduceri : {};\n    const lista = (nou.traduceri[cmd.limba] && Array.isArray(nou.traduceri[cmd.limba].preparate)) ? nou.traduceri[cmd.limba].preparate.slice() : [];\n    while (lista.length < nou.preparate.length) lista.push(null);\n    lista[cmd.index] = cmd.traducere;\n    nou.traduceri[cmd.limba] = { preparate: lista.slice(0, nou.preparate.length) };\n    scrie = true;\n    mesaj = `✅ ${cmd.limba.toUpperCase()} pentru „${nou.preparate[cmd.index].nume}\": ${cmd.traducere}`;\n    break;\n  }\n  default:\n    mesaj = '';\n}\n\nif (!scrie && !mesaj) return [];\nreturn [{ json: {\n  scrie, mesaj, chat_id: cmd.chat_id,\n  continut: nou ? JSON.stringify(nou, null, 2) + '\\n' : '',\n  commit: nou ? `data: meniu-zilei.json ${nou.data}${poza ? ' (poză)' : ''}` : '',\n  are_poza: !!poza, cale_poza: poza\n} }];\n"
+      },
+      "id": "m1-14",
+      "name": "Îmbină",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "w1",
+              "leftValue": "={{ $json.scrie }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1-15",
+      "name": "Scriem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1860,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "data/meniu-zilei.json",
+        "fileContent": "={{ $json.continut }}",
+        "commitMessage": "={{ $json.commit }}"
+      },
+      "id": "m1-16",
+      "name": "Scrie meniu-zilei.json",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        240
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "notes": "Dacă fișierul nu există deloc în repo (prima rulare), creează-l o dată manual sau schimbă operația în „create\"."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "p1",
+              "leftValue": "={{ $('Îmbină').first().json.are_poza }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1-17",
+      "name": "Are poză?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pune binarul redimensionat lângă datele din „Îmbină\" pentru nodul GitHub de încărcare.\nreturn [{ json: $('Îmbină').first().json, binary: $('Redimensionează').first().binary }];"
+      },
+      "id": "m1-18",
+      "name": "Pregătește poza",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2580,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "create",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "={{ $json.cale_poza }}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "commitMessage": "=data: poză meniul zilei {{ $json.cale_poza }}"
+      },
+      "id": "m1-19",
+      "name": "Urcă poza",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        2820,
+        140
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Config').first().json.telegram_chat_id }}",
+        "text": "={{ $('Îmbină').first().json.mesaj }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "m1-20",
+      "name": "Confirmă",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3060,
+        320
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "={{ $json.fisier }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "id": "m1-21",
+      "name": "Citește fișierul de editat",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        520,
+        760
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "notes": "Fișierul ales de comandă: data/program.json, data/catering.json sau data/torturi.json. Dacă lipsește, „Aplică modificarea\" răspunde cu eroare (fișierele din data/ trebuie să existe în repo)."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nodul Code „Aplică modificarea\" (n8n, M8). Intrare: rezultatul nodului GitHub „Citește fișierul de editat\"\n// (câmpul `content` în base64, sau o eroare dacă fișierul lipsește). Citește comanda din „Interpretează mesajul\"\n// (`editare`) și întoarce ce trebuie scris și ce mesaj primește Sorin:\n//   { scrie, fisier, continut, commit, mesaj, chat_id }\n// Logica (recunoașterea comenzii și aplicarea pe JSON) stă în n8n/cod/editare.js, inserat mai jos de n8n/genereaza.js.\nconst Editare = (function () { const module = { exports: {} };\n/* Editarea conținutului site-ului prin Telegram (M8): comenzile lui Sorin → modificări în data/program.json,\n   data/catering.json și data/torturi.json. Fișierul este inserat de n8n/genereaza.js în nodurile Code\n   „Interpretează mesajul\" (recunoaște comanda) și „Aplică modificarea\" (o aplică pe JSON-ul citit din GitHub)\n   din n8n/meniu-zilei.json și se testează separat: node tests/editare.test.js.\n   Fără dependențe; rulează în Node 18+ (n8n) și în browser.\n\n   Comenzi (diacriticele sunt opționale; data: 25.12, 25.12.2026, 25 decembrie):\n     închis 25.12 Crăciun                      zi închisă (ambele unități); „restaurant\" / „cofetărie\" o limitează la una\n     închis 24.12 - 26.12 cofetărie Sărbători   interval de zile\n     deschis 31.12 9:00-15:00 Revelion          program special într-o zi (una sau mai multe perechi de ore)\n     șterge 25.12                               scoate excepțiile din ziua aceea\n     program cofetărie: luni-sâmbătă 9-20, duminică închis      programul săptămânal al unei unități (toate zilele)\n     săptămâna: luni ciorbă de legume, pui la cuptor; marți …   meniul săptămânii pentru prânzul la birou (+ „de la 3.11\", „26 lei\")\n     tort diplomat: 120 lei/kg, 3 zile          preț „de la\", unitatea (kg / bucată) și termenul unui tort din catalog\n     torturi termen 3 zile                      termenul minim general de comandă\n     catering pomeni: 35 lei                    prețul „de la\" al unei oferte (evenimente / pomeni / prânz)\n     arată program | excepții | săptămâna | torturi | catering     ce e acum în fișiere */\n(function (root) {\n  'use strict';\n\n  var LUNI = { ianuarie: 1, ian: 1, februarie: 2, feb: 2, martie: 3, mar: 3, aprilie: 4, apr: 4, mai: 5, iunie: 6, iun: 6, iulie: 7, iul: 7,\n    august: 8, aug: 8, septembrie: 9, sept: 9, sep: 9, octombrie: 10, oct: 10, noiembrie: 11, noi: 11, nov: 11, decembrie: 12, dec: 12 };\n  var LUNI_LUNG = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];\n  var ZILE = ['duminica', 'luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata']; // cheile din program.json (fără diacritice)\n  var ZILE_AFISATE = { luni: 'luni', marti: 'marți', miercuri: 'miercuri', joi: 'joi', vineri: 'vineri', sambata: 'sâmbătă', duminica: 'duminică' };\n  var ORDINE_ZILE = ['luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata', 'duminica'];\n  var UNITATI = { 'gastro-pub': 'Gastro-pub OK', cofetaria: 'Cofetăria OK' };\n  var FISIERE = { program: 'data/program.json', catering: 'data/catering.json', torturi: 'data/torturi.json' };\n\n  function pad(n) { return (n < 10 ? '0' : '') + n; }\n  function norm(s) { // minuscule, fără diacritice (și variantele cu sedilă), spații simple\n    return String(s || '').toLowerCase().replace(/[șş]/g, 's').replace(/[țţ]/g, 't').replace(/[ăâ]/g, 'a').replace(/î/g, 'i').replace(/\\s+/g, ' ').trim();\n  }\n  function isoZi(d) { return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }\n  function plusZile(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return isoZi(d); }\n  function ziSapt(iso) { return new Date(iso + 'T00:00:00Z').getUTCDay(); }\n  function dataValida(an, luna, zi) { var d = new Date(Date.UTC(an, luna - 1, zi)); return d.getUTCMonth() === luna - 1 && d.getUTCDate() === zi ? isoZi(d) : null; }\n  function dataRo(iso, cuAn) { var p = String(iso || '').split('-'); return p.length === 3 ? (+p[2]) + ' ' + LUNI_LUNG[+p[1] - 1] + (cuAn ? ' ' + p[0] : '') : iso; }\n\n  // data/ora locală a restaurantului → { data: 'YYYY-MM-DD', offset: '+03:00' }\n  function localRo(acum, fus) {\n    acum = acum || new Date(); fus = fus || 'Europe/Bucharest';\n    try {\n      var p = {};\n      new Intl.DateTimeFormat('en-GB', { timeZone: fus, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })\n        .formatToParts(acum).forEach(function (x) { p[x.type] = x.value; });\n      var offset = '+02:00';\n      try {\n        var o = new Intl.DateTimeFormat('en-GB', { timeZone: fus, timeZoneName: 'longOffset' }).formatToParts(acum).filter(function (x) { return x.type === 'timeZoneName'; })[0].value;\n        var m = /GMT([+-]\\d{2}:\\d{2})/.exec(o); if (m) offset = m[1];\n      } catch (e) {}\n      var ora = +p.hour % 24;\n      return { data: p.year + '-' + p.month + '-' + p.day, offset: offset, iso: p.year + '-' + p.month + '-' + p.day + 'T' + pad(ora) + ':' + p.minute + ':' + p.second + offset };\n    } catch (e) {\n      return { data: acum.toISOString().slice(0, 10), offset: '+02:00', iso: acum.toISOString() };\n    }\n  }\n\n  // ---------- date ----------\n  // Găsește datele din text (normalizat): „25.12\", „25.12.2026\", „25/12\", „25 decembrie\", „25 dec\"; „25.12 - 27.12\" și „25-27.12\" sunt intervale.\n  // Anul lipsă = anul curent, sau următorul dacă ziua ar fi cu peste 30 de zile în trecut. Întoarce { zile: [...iso], rest: textul fără date }.\n  function extrageDate(n, azi) {\n    var anAzi = +azi.slice(0, 4);\n    var zile = [], preaLung = false;\n    function completeaza(zi, luna, an) {\n      zi = +zi; luna = +luna;\n      if (!an) {\n        an = anAzi;\n        var iso = dataValida(an, luna, zi);\n        if (iso && (new Date(iso + 'T00:00:00Z') - new Date(azi + 'T00:00:00Z')) / 864e5 < -30) an++;\n      } else { an = +an; if (an < 100) an += 2000; }\n      return dataValida(an, luna, zi);\n    }\n    var reNum = '(\\\\d{1,2})[./](\\\\d{1,2})(?:[./](\\\\d{2,4}))?';\n    var reLuna = '(\\\\d{1,2})\\\\s+(ianuarie|ian|februarie|feb|martie|mar|aprilie|apr|mai|iunie|iun|iulie|iul|august|aug|septembrie|sept|sep|octombrie|oct|noiembrie|noi|nov|decembrie|dec)\\\\b(?:\\\\s+(\\\\d{4}))?';\n    var rest = n;\n    // interval „25.12 - 27.12\" / „25 - 27.12\" / „25 decembrie - 3 ianuarie\"\n    rest = rest.replace(new RegExp('\\\\b(?:' + reNum + '|' + reLuna + '|(\\\\d{1,2}))\\\\s*(?:-|–|pana la|pana|până la)\\\\s*(?:' + reNum + '|' + reLuna + ')', 'g'), function () {\n      var a = arguments;\n      // grupuri: 1-3 num1, 4-6 luna1, 7 doarZi, 8-10 num2, 11-13 luna2\n      var b = a[8] ? completeaza(a[8], a[9], a[10]) : completeaza(a[11], LUNI[a[12]], a[13]);\n      var s = a[1] ? completeaza(a[1], a[2], a[3]) : a[4] ? completeaza(a[4], LUNI[a[5]], a[6]) : (b ? completeaza(a[7], b.slice(5, 7), b.slice(0, 4)) : null);\n      if (!s || !b || b < s) { zile.push(null); return ' '; }\n      if ((new Date(b + 'T00:00:00Z') - new Date(s + 'T00:00:00Z')) / 864e5 > 62) { preaLung = true; return ' '; }\n      for (var d = s; d <= b; d = plusZile(d, 1)) zile.push(d);\n      return ' ';\n    });\n    if (preaLung) return { eroare: 'Intervalul e prea lung (cel mult 62 de zile).' };\n    rest = rest.replace(new RegExp('\\\\b' + reNum + '\\\\b', 'g'), function (_, zi, luna, an) { zile.push(completeaza(zi, luna, an)); return ' '; });\n    rest = rest.replace(new RegExp('\\\\b' + reLuna, 'g'), function (_, zi, luna, an) { zile.push(completeaza(zi, LUNI[luna], an)); return ' '; });\n    if (zile.some(function (z) { return !z; })) return { eroare: 'Nu înțeleg data. Datele se scriu cu punct (25.12, 25.12.2026 sau 25 decembrie), orele cu două puncte (9:00-15:00).' };\n    var unice = []; zile.forEach(function (z) { if (unice.indexOf(z) < 0) unice.push(z); });\n    unice.sort();\n    return { zile: unice, rest: rest.replace(/\\s+/g, ' ').trim() };\n  }\n\n  // „9-15\", „9:00-15:00\", „09.30 - 23.30\", „10–22\" → [['09:00','15:00'], ...]; întoarce { intervale, rest }\n  function extrageIntervale(n) {\n    var intervale = [], eroare = null;\n    // orele: „9-15\", „9:00-15:00\", „08:30 - 23:30\"; minutele doar cu două puncte (punctul e al datelor: 25.12), fără cifre/punct lipite înainte sau după\n    var rest = n.replace(/(?<![\\d.:])(\\d{1,2})(?::(\\d{2}))?\\s*[-–]\\s*(\\d{1,2})(?::(\\d{2}))?(?![\\d.:])/g, function (_, h1, m1, h2, m2) {\n      h1 = +h1; h2 = +h2; m1 = m1 ? +m1 : 0; m2 = m2 ? +m2 : 0;\n      if (h1 > 24 || h2 > 24 || m1 > 59 || m2 > 59) { eroare = 'Ora nu e validă (' + h1 + ':' + pad(m1) + '–' + h2 + ':' + pad(m2) + ').'; return ' '; }\n      intervale.push([pad(h1 % 24) + ':' + pad(m1), pad(h2 % 24) + ':' + pad(m2)]);\n      return ' ';\n    });\n    if (eroare) return { eroare: eroare };\n    return { intervale: intervale, rest: rest.replace(/\\s+/g, ' ').trim() };\n  }\n  function textIntervale(iv) { return iv && iv.length ? iv.map(function (x) { return x[0] + '–' + x[1]; }).join(', ') : 'închis'; }\n\n  // cuvântul care alege unitatea; întoarce { unitate: 'gastro-pub' | 'cofetaria' | null, rest }\n  function extrageUnitate(n) {\n    var unitate = null;\n    var rest = n.replace(/\\b(restaurant(?:ul)?|gastro[- ]?pub(?:ul)?|terasa|pub(?:ul)?)\\b/g, function () { unitate = 'gastro-pub'; return ' '; })\n      .replace(/\\b(cofetari[ae](?:ia)?|cofetarie|cofetaria)\\b/g, function () { unitate = unitate === 'gastro-pub' ? 'ambele' : 'cofetaria'; return ' '; })\n      .replace(/\\b(ambele|peste tot|tot|toate)\\b/g, function () { unitate = 'ambele'; return ' '; });\n    return { unitate: unitate === 'ambele' ? null : unitate, rest: rest.replace(/\\s+/g, ' ').trim() };\n  }\n  function curataMotiv(original, consumat) {\n    // motivul = cuvintele din textul original care au rămas după extragerea datelor/orelor/unității (comparate fără diacritice)\n    var curat = function (x) { return x.replace(/^[\\s:,;.()-]+|[\\s:,;.()-]+$/g, ''); };\n    var ramase = consumat.split(' ').map(curat).filter(Boolean);\n    if (!ramase.length) return '';\n    var cuvinte = String(original).replace(/\\s+/g, ' ').trim().split(' ');\n    var out = [];\n    cuvinte.forEach(function (c) { var k = curat(norm(c)); var i = ramase.indexOf(k); if (k && i >= 0) { ramase.splice(i, 1); out.push(c.replace(/^[,;:()]+|[,;:()]+$/g, '')); } });\n    return out.join(' ').trim();\n  }\n\n  // zilele săptămânii dintr-un segment (normalizat, fără ore): „luni-vineri\", „sambata si duminica\", „zilnic\" → ['luni', ...]\n  function extrageZile(n) {\n    var zile = [];\n    var alias = { duminica: 'duminica', dum: 'duminica', luni: 'luni', lun: 'luni', marti: 'marti', mar: 'marti', miercuri: 'miercuri', mie: 'miercuri', joi: 'joi', vineri: 'vineri', vin: 'vineri', sambata: 'sambata', simbata: 'sambata', sam: 'sambata' };\n    var reZi = '(duminica|dum|luni|lun|marti|mar|miercuri|mie|joi|vineri|vin|sambata|simbata|sam)';\n    if (/\\b(zilnic|toate zilele|in fiecare zi|luni ?- ?duminica)\\b/.test(n)) return ORDINE_ZILE.slice();\n    var rest = n.replace(new RegExp('\\\\b(?:de )?' + reZi + '\\\\s*(?:-|–|pana la|pana|până la|pana in|pana)\\\\s*' + reZi + '\\\\b', 'g'), function (_, a, b) {\n      var i = ORDINE_ZILE.indexOf(alias[a]), j = ORDINE_ZILE.indexOf(alias[b]);\n      if (i < 0 || j < 0) return ' ';\n      for (var k = i; ; k = (k + 1) % 7) { zile.push(ORDINE_ZILE[k]); if (k === j) break; }\n      return ' ';\n    });\n    rest.replace(new RegExp('\\\\b' + reZi + '\\\\b', 'g'), function (_, a) { zile.push(alias[a]); return ' '; });\n    var unice = []; zile.forEach(function (z) { if (unice.indexOf(z) < 0) unice.push(z); });\n    return unice;\n  }\n\n  // ---------- recunoașterea comenzii ----------\n  /* interpreteaza(text, acum, opt) → null dacă textul NU este o comandă de editare (rămâne meniu al zilei),\n     altfel { fisier, tip, ... } sau { fisier: null, tip: 'eroare', eroare } */\n  function interpreteaza(text, acum, opt) {\n    opt = opt || {};\n    var t = localRo(acum, opt.fus);\n    var azi = t.data;\n    var original = String(text || '').trim();\n    var n = norm(original).replace(/^\\//, '');\n    var m;\n\n    // arată …\n    if ((m = /^(arata|vezi|afiseaza)\\s+(.+)$/.exec(n))) {\n      var ce = m[2].replace(/\\bde\\b|\\bzilele\\b|\\bcurent[a]?\\b|\\bactual[a]?\\b/g, ' ').trim();\n      if (/^(program(ul)?|orar(ul)?)/.test(ce)) return { fisier: FISIERE.program, tip: 'arata', ce: 'program' };\n      if (/^(exceptii(le)?|inchis|zile inchise|zile libere|special)/.test(ce)) return { fisier: FISIERE.program, tip: 'arata', ce: 'exceptii' };\n      if (/^(saptamana|meniul saptamanii|pranz(ul)?( la birou)?)/.test(ce)) return { fisier: FISIERE.catering, tip: 'arata', ce: 'saptamana' };\n      if (/^(torturi(le)?|tort(uri)?|catalog(ul)?|cofetari[ae])/.test(ce)) return { fisier: FISIERE.torturi, tip: 'arata', ce: 'torturi' };\n      if (/^(catering(ul)?|oferte(le)?)/.test(ce)) return { fisier: FISIERE.catering, tip: 'arata', ce: 'catering' };\n      return { fisier: null, tip: 'eroare', eroare: 'Pot arăta: program, excepții, săptămâna, torturi, catering.' };\n    }\n\n    // închis / deschis (program special) / șterge\n    if ((m = /^(inchis|inchidem|liber|deschis|program special|orar special|sterge|anuleaza|scoate|anulati?)\\b\\s*:?\\s*(.*)$/.exec(n))) {\n      var verb = m[1], restN = m[2];\n      var tip = /^(inchis|inchidem|liber)/.test(verb) ? 'inchis' : /^(deschis|program|orar)/.test(verb) ? 'orar_special' : 'sterge';\n      var iv = { intervale: [], rest: restN };\n      if (tip === 'orar_special') { // orele întâi (9:00-15:00), ca să nu fie luate drept date\n        iv = extrageIntervale(restN);\n        if (iv.eroare) return { fisier: null, tip: 'eroare', eroare: iv.eroare };\n        if (!iv.intervale.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsesc orele. Exemplu: deschis 31.12 9:00-15:00 Revelion.' };\n      }\n      var d = extrageDate(iv.rest, azi);\n      if (d.eroare) return { fisier: null, tip: 'eroare', eroare: d.eroare };\n      if (!d.zile.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsește data. Exemplu: ' + (tip === 'inchis' ? 'închis 25.12 Crăciun' : tip === 'orar_special' ? 'deschis 31.12 9:00-15:00 Revelion' : 'șterge 25.12') + '.' };\n      if (d.zile.length > 62) return { fisier: null, tip: 'eroare', eroare: 'Intervalul e prea lung (max 62 de zile).' };\n      var u = extrageUnitate(d.rest);\n      var motiv = tip === 'sterge' ? '' : curataMotiv(original.replace(/^\\/?\\S+\\s*:?\\s*/, ''), u.rest);\n      return { fisier: FISIERE.program, tip: tip, zile: d.zile, orar: iv.intervale, unitate: u.unitate, motiv: motiv };\n    }\n\n    // program <unitate>: luni-vineri 8:30-23:30; sâmbătă …; duminică închis\n    if ((m = /^(program(ul)?|orar(ul)?)\\s+(restaurant(?:ul)?|gastro[- ]?pub(?:ul)?|terasa|cofetari[ae](?:ia)?|cofetarie|cofetaria)\\s*[:\\-]?\\s*([\\s\\S]*)$/.exec(n))) {\n      var unitate = /cofet/.test(m[4]) ? 'cofetaria' : 'gastro-pub';\n      var corp = m[5].trim();\n      if (!corp) return { fisier: null, tip: 'eroare', eroare: 'Scrie programul pe zile. Exemplu: program cofetărie: luni-sâmbătă 9:00-20:00, duminică închis.' };\n      var orar = {}, segmente = corp.split(/[;,\\n]+/);\n      for (var i = 0; i < segmente.length; i++) {\n        var seg = segmente[i].trim(); if (!seg) continue;\n        var ivs = extrageIntervale(seg);\n        if (ivs.eroare) return { fisier: null, tip: 'eroare', eroare: ivs.eroare };\n        var inchis = /\\b(inchis|liber|nu lucram|pauza)\\b/.test(ivs.rest);\n        var zile = extrageZile(ivs.rest.replace(/\\b(inchis|liber|nu lucram|pauza)\\b/g, ' '));\n        if (!zile.length) return { fisier: null, tip: 'eroare', eroare: 'Nu înțeleg zilele din „' + segmente[i].trim() + '\". Exemplu: luni-vineri 9-20.' };\n        if (!inchis && !ivs.intervale.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsesc orele pentru „' + segmente[i].trim() + '\" (sau scrie „închis\").' };\n        zile.forEach(function (z) { orar[z] = inchis ? [] : ivs.intervale; });\n      }\n      var lipsa = ORDINE_ZILE.filter(function (z) { return !(z in orar); });\n      if (lipsa.length) return { fisier: null, tip: 'eroare', eroare: 'Lipsesc zilele: ' + lipsa.map(function (z) { return ZILE_AFISATE[z]; }).join(', ') + '. Scrie programul pentru toate cele 7 zile (sau „duminică închis\").' };\n      var ordonat = {}; ORDINE_ZILE.forEach(function (z) { ordonat[z] = orar[z]; });\n      return { fisier: FISIERE.program, tip: 'program', unitate: unitate, orar: ordonat };\n    }\n\n    // săptămâna: luni …; marți … (meniul săptămânii, prânz la birou)\n    if ((m = /^(saptamana|meniul saptamanii|pranz(?:ul)? la birou)\\s*[:\\-]?\\s*([\\s\\S]*)$/.exec(n))) {\n      var corpS = original.replace(/^\\/?\\s*(s[ăa]pt[ăa]m[âa]na|meniul s[ăa]pt[ăa]m[âa]nii|pr[âa]nz(?:ul)? la birou)\\s*[:\\-]?\\s*/i, ''); // originalul, cu diacritice, fără cuvântul-cheie\n      var pret = null, start = null;\n      var nS = norm(corpS);\n      var mp = /\\b(\\d{2,3})\\s*(?:lei|ron)\\b/.exec(nS); if (mp) pret = +mp[1];\n      var md = /\\b(?:de la|din|incepand cu|incepand)\\s+(\\d{1,2}[./]\\d{1,2}(?:[./]\\d{2,4})?|\\d{1,2}\\s+[a-z]+)/.exec(nS);\n      if (md) {\n        var dd = extrageDate(md[1], azi);\n        if (dd.eroare || !dd.zile.length) return { fisier: null, tip: 'eroare', eroare: 'Nu înțeleg data de început („de la 3.11\").' };\n        start = dd.zile[0];\n      }\n      var segmenteS = corpS.split(/[;\\n]+/).map(function (s) { return s.trim(); }).filter(Boolean);\n      var zileS = {}, reZiStart = /^(luni|lun|marti|marți|mar|miercuri|mie|joi|vineri|vin|sambata|sâmbătă|simbata|sam|duminica|duminică|dum)\\b\\s*[:\\-]?\\s*(.*)$/i;\n      var aliasS = { luni: 'luni', lun: 'luni', marti: 'marti', mar: 'marti', miercuri: 'miercuri', mie: 'miercuri', joi: 'joi', vineri: 'vineri', vin: 'vineri', sambata: 'sambata', simbata: 'sambata', sam: 'sambata', duminica: 'duminica', dum: 'duminica' };\n      segmenteS.forEach(function (s) {\n        var ms = reZiStart.exec(s); if (!ms) return;\n        var preparate = ms[2].replace(/\\b(de la|din|începând cu|incepand cu|începând|incepand)\\s+\\S+/gi, '').replace(/\\b\\d{2,3}\\s*(lei|ron)\\b/gi, '').split(/\\s*,\\s*/).map(function (p) { return p.replace(/[.\\s]+$/, '').trim(); }).filter(Boolean)\n          .map(function (p) { return p.charAt(0).toUpperCase() + p.slice(1); });\n        if (preparate.length) zileS[aliasS[norm(ms[1])]] = preparate;\n      });\n      if (!Object.keys(zileS).length) return { fisier: null, tip: 'eroare', eroare: 'Scrie câte o zi pe rând sau desparte zilele cu „;\". Exemplu: săptămâna: luni ciorbă de legume, pui la cuptor; marți ciorbă de burtă, sarmale.' };\n      if (!start) { var zs = ziSapt(azi); start = zs === 0 ? plusZile(azi, 1) : zs === 6 ? plusZile(azi, 2) : plusZile(azi, 1 - zs); } // luni din săptămâna curentă; sâmbăta/duminica → lunea următoare\n      else start = plusZile(start, ziSapt(start) === 0 ? -6 : 1 - ziSapt(start)); // lunea săptămânii în care cade data\n      var zileOut = ORDINE_ZILE.filter(function (z) { return zileS[z]; }).map(function (z) { return { data: plusZile(start, ORDINE_ZILE.indexOf(z)), preparate: zileS[z] }; });\n      return { fisier: FISIERE.catering, tip: 'saptamana', saptamana: start, pret: pret, zile: zileOut };\n    }\n\n    // torturi termen 3 zile\n    if ((m = /^torturi(?:le)?\\s*[:\\-]?\\s*termen(?:ul)?(?: minim)?\\s*[:\\-]?\\s*(\\d{1,2})\\s*zile?\\b/.exec(n))) return { fisier: FISIERE.torturi, tip: 'torturi_termen', zile: +m[1] };\n\n    // tort diplomat: 120 lei/kg, 3 zile   |   tort nuntă: la cerere\n    if ((m = /^tort(?:ul)?\\s+(.+?)\\s*[:\\-]\\s*(.+)$/.exec(n)) || (m = /^tort(?:ul)?\\s+([a-z][a-z -]*?)\\s+(\\d{1,4}\\s*(?:lei|ron).*)$/.exec(n))) {\n      var cheie = m[1].trim(), valoare = m[2].trim(), rez = { fisier: FISIERE.torturi, tip: 'tort', cheie: cheie };\n      if (/\\b(la cerere|fara pret|fără preț)\\b/.test(valoare)) rez.pret_de_la = null;\n      else {\n        var mpret = /(\\d{1,4}(?:[.,]\\d{1,2})?)\\s*(?:lei|ron)?/.exec(valoare);\n        if (!mpret) return { fisier: null, tip: 'eroare', eroare: 'Lipsește prețul. Exemplu: tort diplomat: 120 lei/kg, 3 zile.' };\n        rez.pret_de_la = +mpret[1].replace(',', '.');\n      }\n      if (/\\b(kg|kilogram(ul)?)\\b/.test(valoare)) rez.per = 'kg';\n      else if (/\\b(buc|bucata|bucati|felie|felia|portie|portia)\\b/.test(valoare)) rez.per = 'bucată';\n      var mt = /(\\d{1,2})\\s*zile?\\b/.exec(valoare); if (mt) rez.termen_minim_zile = +mt[1];\n      return rez;\n    }\n\n    // catering pomeni: 35 lei   |   catering prânz: 24 lei   |   catering evenimente: la cerere\n    if ((m = /^catering\\s+(evenimente?|pomeni|pomana|parastas(?:e)?|pranz(?: la birou)?|birou)\\s*[:\\-]?\\s*(.+)$/.exec(n))) {\n      var idOferta = /^even/.test(m[1]) ? 'evenimente' : /^(pomen|poman|parast)/.test(m[1]) ? 'pomeni' : 'pranz-birou';\n      var val = m[2].trim();\n      if (/\\b(la cerere|fara pret)\\b/.test(val)) return { fisier: FISIERE.catering, tip: 'catering_pret', oferta: idOferta, pret_de_la: null };\n      var mc = /(\\d{1,4}(?:[.,]\\d{1,2})?)\\s*(?:lei|ron)?/.exec(val);\n      if (!mc) return { fisier: null, tip: 'eroare', eroare: 'Lipsește prețul. Exemplu: catering pomeni: 35 lei.' };\n      return { fisier: FISIERE.catering, tip: 'catering_pret', oferta: idOferta, pret_de_la: +mc[1].replace(',', '.') };\n    }\n\n    return null; // nu e comandă de editare\n  }\n\n  // ---------- aplicarea pe JSON ----------\n  /* aplica(cmd, existent, acum, opt) → { scrie, continut (obiect sau null), commit, mesaj } — existent = JSON-ul curent din GitHub (sau null) */\n  function aplica(cmd, existent, acum, opt) {\n    opt = opt || {};\n    var t = localRo(acum, opt.fus);\n    var actualizat = t.iso;\n    var out = { scrie: false, continut: null, commit: '', mesaj: '' };\n    var ok = function (mesaj, nou, commit) { out.scrie = true; out.continut = nou; out.commit = commit; out.mesaj = mesaj + '\\nPe site în ~1 minut.'; return out; };\n    var nu = function (mesaj) { out.mesaj = mesaj; return out; };\n    if (!cmd || cmd.tip === 'eroare') return nu('⚠️ ' + ((cmd && cmd.eroare) || 'Comandă necunoscută.'));\n    if (!existent || typeof existent !== 'object') return nu('⚠️ Nu am putut citi ' + cmd.fisier + ' din repo. Fișierul trebuie să existe deja (vezi n8n/README.md).');\n    var nou = JSON.parse(JSON.stringify(existent));\n    nou.actualizat = actualizat;\n    var numeU = function (u) { return u ? (UNITATI[u] || u) : 'ambele unități'; };\n    var zileText = function (zile) { return zile.length === 1 ? dataRo(zile[0], true) : dataRo(zile[0]) + ' – ' + dataRo(zile[zile.length - 1], true) + ' (' + zile.length + ' zile)'; };\n\n    switch (cmd.tip) {\n      case 'arata': return nu(arata(cmd.ce, existent, t.data));\n\n      case 'inchis': case 'orar_special': {\n        nou.exceptii = Array.isArray(nou.exceptii) ? nou.exceptii : [];\n        cmd.zile.forEach(function (zi) {\n          nou.exceptii = nou.exceptii.filter(function (e) { return !(e && e.data === zi && (e.unitate || null) === (cmd.unitate || null)); });\n          var e = { data: zi };\n          if (cmd.unitate) e.unitate = cmd.unitate;\n          if (cmd.tip === 'inchis') e.inchis = true; else e.orar = cmd.orar;\n          if (cmd.motiv) e.motiv = cmd.motiv;\n          nou.exceptii.push(e);\n        });\n        nou.exceptii.sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });\n        var ce = cmd.tip === 'inchis' ? '🚫 Închis' : '🕓 Program special ' + textIntervale(cmd.orar);\n        return ok('✅ ' + ce + ' pe ' + zileText(cmd.zile) + (cmd.motiv ? ' (' + cmd.motiv + ')' : '') + ' — ' + numeU(cmd.unitate) + '.' + (cmd.zile.length === 1 ? '' : '') + '\\nAnulezi cu <code>șterge ' + cmd.zile[0].slice(8, 10) + '.' + cmd.zile[0].slice(5, 7) + '</code>.',\n          nou, 'data: program.json — ' + (cmd.tip === 'inchis' ? 'închis' : 'program special') + ' ' + cmd.zile[0] + (cmd.zile.length > 1 ? '…' + cmd.zile[cmd.zile.length - 1] : ''));\n      }\n\n      case 'sterge': {\n        var inainte = Array.isArray(nou.exceptii) ? nou.exceptii.length : 0;\n        nou.exceptii = (nou.exceptii || []).filter(function (e) { return !(e && cmd.zile.indexOf(e.data) >= 0 && (!cmd.unitate || (e.unitate || null) === cmd.unitate)); });\n        var scoase = inainte - nou.exceptii.length;\n        if (!scoase) return nu('Nu era nicio excepție pe ' + zileText(cmd.zile) + (cmd.unitate ? ' pentru ' + numeU(cmd.unitate) : '') + '.');\n        return ok('✅ ' + scoase + (scoase === 1 ? ' excepție scoasă' : ' excepții scoase') + ' (' + zileText(cmd.zile) + '); rămâne programul obișnuit.', nou, 'data: program.json — fără excepții ' + cmd.zile[0]);\n      }\n\n      case 'program': {\n        nou.unitati = nou.unitati || {};\n        var u = nou.unitati[cmd.unitate] = nou.unitati[cmd.unitate] || { nume: UNITATI[cmd.unitate] };\n        u.orar = cmd.orar;\n        delete u._exemplu; delete u._nota; // programul nu mai e exemplu → site-ul scoate „orientativ\", build.js îl pune în schema.org\n        if (typeof nou._nota === 'string') nou._nota = nou._nota.replace(/\\s*Programul cofetăriei este încă EXEMPLU[^.]*\\.(\\s*TODO-Sorin\\.)?/, '').trim();\n        if (nou._exemplu && Object.keys(nou.unitati).every(function (k) { return !nou.unitati[k]._exemplu; })) delete nou._exemplu;\n        var linii = ORDINE_ZILE.map(function (z) { return ZILE_AFISATE[z] + ': ' + textIntervale(cmd.orar[z]); });\n        return ok('✅ Programul pentru <b>' + numeU(cmd.unitate) + '</b>:\\n' + linii.join('\\n'), nou, 'data: program.json — programul ' + numeU(cmd.unitate));\n      }\n\n      case 'saptamana': {\n        var ms = nou.meniu_saptamana && typeof nou.meniu_saptamana === 'object' ? nou.meniu_saptamana : {};\n        var pretVechi = typeof ms.pret === 'number' ? ms.pret : null;\n        var ofertaPranz = (nou.oferte || []).filter(function (o) { return o && o.id === 'pranz-birou'; })[0];\n        var pret = cmd.pret != null ? cmd.pret : pretVechi != null ? pretVechi : (ofertaPranz && typeof ofertaPranz.pret_de_la === 'number' ? ofertaPranz.pret_de_la : null);\n        nou.meniu_saptamana = { saptamana: cmd.saptamana, pret: pret, moneda: ms.moneda || 'lei', zile: cmd.zile };\n        if (cmd.pret != null && ofertaPranz) { ofertaPranz.pret_de_la = cmd.pret; delete ofertaPranz._nota; }\n        delete nou._exemplu; // meniul e scris de Sorin, nu mai e exemplu\n        var liniiS = cmd.zile.map(function (z) { return ZILE_AFISATE[ORDINE_ZILE[(ziSapt(z.data) + 6) % 7]] + ' ' + (+z.data.slice(8, 10)) + '.' + z.data.slice(5, 7) + ': ' + z.preparate.join(', '); });\n        return ok('✅ Meniul săptămânii de la ' + dataRo(cmd.saptamana, true) + (pret != null ? ', ' + pret + ' lei/porție' : ', fără preț afișat') + ':\\n' + liniiS.join('\\n'), nou, 'data: catering.json — meniul săptămânii ' + cmd.saptamana);\n      }\n\n      case 'catering_pret': {\n        var of = (nou.oferte || []).filter(function (o) { return o && o.id === cmd.oferta; })[0];\n        if (!of) return nu('⚠️ Nu există oferta „' + cmd.oferta + '\" în catering.json.');\n        of.pret_de_la = cmd.pret_de_la; delete of._nota;\n        if (cmd.oferta === 'pranz-birou' && nou.meniu_saptamana && cmd.pret_de_la != null) nou.meniu_saptamana.pret = cmd.pret_de_la;\n        return ok('✅ ' + of.nume + ': ' + (cmd.pret_de_la == null ? 'preț la cerere' : 'de la ' + cmd.pret_de_la + ' lei / ' + (of.per || 'persoană')) + '.', nou, 'data: catering.json — preț ' + cmd.oferta);\n      }\n\n      case 'torturi_termen': {\n        nou.termen_minim_zile = cmd.zile;\n        return ok('✅ Termenul minim de comandă pentru torturi: ' + cmd.zile + (cmd.zile === 1 ? ' zi' : ' zile') + '.', nou, 'data: torturi.json — termen ' + cmd.zile + ' zile');\n      }\n\n      case 'tort': {\n        var lista = Array.isArray(nou.torturi) ? nou.torturi : [];\n        var k = norm(cmd.cheie);\n        var tort = lista.filter(function (x) { return x && norm(x.id) === k; })[0]\n          || lista.filter(function (x) { return x && norm(x.nume).indexOf(k) >= 0; })[0]\n          || lista.filter(function (x) { return x && k.split(' ').every(function (w) { return norm(x.nume + ' ' + x.id).indexOf(w) >= 0; }); })[0];\n        if (!tort) return nu('⚠️ Nu găsesc tortul „' + cmd.cheie + '\". În catalog: ' + lista.map(function (x) { return x.id; }).join(', ') + '.');\n        tort.pret_de_la = cmd.pret_de_la;\n        if (cmd.per) tort.per = cmd.per;\n        if (cmd.termen_minim_zile != null) tort.termen_minim_zile = cmd.termen_minim_zile;\n        delete tort._nota;\n        if (nou._exemplu && lista.every(function (x) { return !x._nota; })) delete nou._exemplu;\n        return ok('✅ ' + tort.nume + ': ' + (cmd.pret_de_la == null ? 'preț la cerere' : 'de la ' + cmd.pret_de_la + ' lei / ' + (tort.per || 'kg'))\n          + (tort.termen_minim_zile != null ? ', comandă cu minimum ' + tort.termen_minim_zile + ' zile înainte' : '') + '.', nou, 'data: torturi.json — ' + tort.id);\n      }\n\n      default: return nu('⚠️ Comandă necunoscută.');\n    }\n  }\n\n  // „arată …\" → text pentru Telegram\n  function arata(ce, json, azi) {\n    var lin = [];\n    if (ce === 'program') {\n      Object.keys(json.unitati || {}).forEach(function (k) {\n        var u = json.unitati[k]; if (!u || !u.orar) return;\n        lin.push('<b>' + (u.nume || k) + '</b>' + (u._exemplu ? ' (încă exemplu — trimite „program ' + (k === 'cofetaria' ? 'cofetărie' : 'restaurant') + ': …\")' : ''));\n        ORDINE_ZILE.forEach(function (z) { lin.push('  ' + ZILE_AFISATE[z] + ': ' + textIntervale(u.orar[z])); });\n      });\n      return lin.length ? lin.join('\\n') : 'Nu există program în program.json.';\n    }\n    if (ce === 'exceptii') {\n      var exc = (json.exceptii || []).filter(function (e) { return e && e.data >= azi; });\n      if (!exc.length) return 'Nu sunt zile închise sau cu program special de azi încolo.';\n      return '<b>Excepții de azi încolo</b>\\n' + exc.map(function (e) { return dataRo(e.data, true) + ': ' + (e.inchis ? 'închis' : textIntervale(e.orar)) + (e.motiv ? ' (' + e.motiv + ')' : '') + (e.unitate ? ' — ' + (UNITATI[e.unitate] || e.unitate) : ''); }).join('\\n');\n    }\n    if (ce === 'saptamana') {\n      var ms = json.meniu_saptamana;\n      if (!ms || !Array.isArray(ms.zile) || !ms.zile.length) return 'Nu e scris niciun meniu al săptămânii.';\n      return '<b>Meniul săptămânii de la ' + dataRo(ms.saptamana, true) + '</b>' + (typeof ms.pret === 'number' ? ', ' + ms.pret + ' ' + (ms.moneda || 'lei') + '/porție' : '') + (json._exemplu ? ' (exemplu)' : '') + '\\n'\n        + ms.zile.map(function (z) { return (+z.data.slice(8, 10)) + '.' + z.data.slice(5, 7) + ': ' + (z.preparate || []).join(', '); }).join('\\n');\n    }\n    if (ce === 'torturi') {\n      var l = json.torturi || [];\n      if (!l.length) return 'Catalogul de torturi e gol.';\n      return '<b>Torturi</b> (termen minim ' + (json.termen_minim_zile || '?') + ' zile)\\n' + l.map(function (x) { return x.id + ' — ' + x.nume + ': ' + (typeof x.pret_de_la === 'number' ? 'de la ' + x.pret_de_la + ' lei/' + (x.per || 'kg') : 'preț la cerere') + (x.termen_minim_zile ? ', ' + x.termen_minim_zile + ' zile' : ''); }).join('\\n')\n        + '\\nSchimbi cu <code>tort diplomat: 120 lei/kg, 3 zile</code>.';\n    }\n    if (ce === 'catering') {\n      var o = json.oferte || [];\n      if (!o.length) return 'Nu sunt oferte în catering.json.';\n      return '<b>Oferte catering</b>\\n' + o.map(function (x) { return x.id + ' — ' + x.nume + ': ' + (typeof x.pret_de_la === 'number' ? 'de la ' + x.pret_de_la + ' lei/' + (x.per || 'persoană') : 'preț la cerere'); }).join('\\n') + '\\nSchimbi cu <code>catering pomeni: 35 lei</code>.';\n    }\n    return 'Pot arăta: program, excepții, săptămâna, torturi, catering.';\n  }\n\n  var AJUTOR = [\n    '<b>Editarea site-ului de pe telefon</b> (diacriticele nu contează):',\n    '<code>închis 25.12 Crăciun</code> — zi închisă; <code>închis 24.12 - 26.12 cofetărie Sărbători</code> — interval, doar o unitate',\n    '<code>deschis 31.12 9:00-15:00 Revelion</code> — program special într-o zi',\n    '<code>șterge 25.12</code> — scoate excepția',\n    '<code>program cofetărie: luni-sâmbătă 9-20, duminică închis</code> — programul săptămânal (toate zilele)',\n    '<code>săptămâna: luni ciorbă de legume, pui la cuptor; marți …</code> — meniul săptămânii la birou (+ <code>de la 3.11</code>, <code>26 lei</code>)',\n    '<code>tort diplomat: 120 lei/kg, 3 zile</code> · <code>torturi termen 3 zile</code> · <code>catering pomeni: 35 lei</code>',\n    '<code>arată program</code> / <code>excepții</code> / <code>săptămâna</code> / <code>torturi</code> / <code>catering</code>'\n  ].join('\\n');\n\n  var api = { interpreteaza: interpreteaza, aplica: aplica, arata: arata, norm: norm, extrageDate: extrageDate, extrageIntervale: extrageIntervale, extrageZile: extrageZile, localRo: localRo, AJUTOR: AJUTOR, FISIERE: FISIERE };\n  if (typeof module !== 'undefined' && module.exports) module.exports = api;\n  else root.Editare = api;\n})(typeof globalThis !== 'undefined' ? globalThis : this);\n\nreturn module.exports; })();\n\nconst cfg = $('Config').first().json;\nconst cmd = $('Interpretează mesajul').first().json;\nconst r = ($input.first() && $input.first().json) || {};\nlet existent = null;\ntry { if (r && r.content) existent = JSON.parse(Buffer.from(String(r.content).replace(/\\n/g, ''), 'base64').toString('utf8')); } catch (e) { existent = null; }\n\nconst rez = Editare.aplica(cmd.editare, existent, new Date(), { fus: cfg.fus_orar || 'Europe/Bucharest' });\nreturn [{ json: {\n  scrie: !!rez.scrie, fisier: (cmd.editare && cmd.editare.fisier) || '',\n  continut: rez.continut ? JSON.stringify(rez.continut, null, 2) + '\\n' : '',\n  commit: rez.commit || '', mesaj: rez.mesaj || '', chat_id: cmd.chat_id\n} }];\n"
+      },
+      "id": "m1-22",
+      "name": "Aplică modificarea",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        760
+      ],
+      "notes": "n8n/cod/aplica-editare.js + editare.js: aplică comanda („închis 25.12\", „program cofetărie: …\", „săptămâna: …\", „tort …\", „catering …\") pe JSON-ul citit; „arată …\" doar răspunde."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e1",
+              "leftValue": "={{ $json.scrie }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1-23",
+      "name": "Scriem modificarea?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        960,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_owner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.github_repo }}"
+        },
+        "filePath": "={{ $json.fisier }}",
+        "fileContent": "={{ $json.continut }}",
+        "commitMessage": "={{ $json.commit }}"
+      },
+      "id": "m1-24",
+      "name": "Scrie fișierul editat",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        680
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "GitHub PAT site"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "Commit în data/<fișier>.json → Cloudflare Pages redeploy. Ieșirea de eroare merge la „Confirmă editarea\" cu mesaj de eroare."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Config').first().json.telegram_chat_id }}",
+        "text": "={{ $json.error ? '⚠️ Nu am putut scrie ' + $('Aplică modificarea').first().json.fisier + ' în repo: ' + ($json.error.message || JSON.stringify($json.error)) : $('Aplică modificarea').first().json.mesaj }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "m1-25",
+      "name": "Confirmă editarea",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1420,
+        760
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Config').first().json.telegram_chat_id }}",
+        "text": "={{ ($json.eroare ? '⚠️ ' + $json.eroare + '\\n\\n' : '') + ($json.ajutor_editare ? \"<b>Editarea site-ului de pe telefon</b> (diacriticele nu contează):\\n<code>închis 25.12 Crăciun</code> — zi închisă; <code>închis 24.12 - 26.12 cofetărie Sărbători</code> — interval, doar o unitate\\n<code>deschis 31.12 9:00-15:00 Revelion</code> — program special într-o zi\\n<code>șterge 25.12</code> — scoate excepția\\n<code>program cofetărie: luni-sâmbătă 9-20, duminică închis</code> — programul săptămânal (toate zilele)\\n<code>săptămâna: luni ciorbă de legume, pui la cuptor; marți …</code> — meniul săptămânii la birou (+ <code>de la 3.11</code>, <code>26 lei</code>)\\n<code>tort diplomat: 120 lei/kg, 3 zile</code> · <code>torturi termen 3 zile</code> · <code>catering pomeni: 35 lei</code>\\n<code>arată program</code> / <code>excepții</code> / <code>săptămâna</code> / <code>torturi</code> / <code>catering</code>\" : \"Scrie meniul zilei ca pe Facebook, pe un rând sau câte un preparat pe rând. Exemple:\\n\\n<code>Meniul zilei, 20 octombrie: ciorbă de perișoare, crap prăjit cu mămăligă și mujdei, salată de varză. 24 lei.</code>\\n\\n<code>Mâine\\nCiorbă de legume\\nPui la cuptor cu cartofi (gluten, lapte)\\nMurături (fără)</code>\\n\\n• fără dată: seara (după 14:00) înseamnă mâine, dimineața înseamnă azi;\\n• alergenii se detectează automat; îi corectezi cu <code>alergeni 2: gluten, ou</code> sau îi scrii în paranteză după preparat;\\n• pozele le trimiți separat, după text; apar pe site în ~1 minut;\\n• <code>gata</code> închide meniul mai devreme de ora stabilită;\\n• traducerile EN/BG se fac automat (glosar sau DeepL); le corectezi cu <code>en 2: Fried carp with polenta</code> sau <code>bg 2: …</code>;\\n• programul, zilele închise, meniul săptămânii, prețurile torturilor și ale cateringului se schimbă tot de aici: scrie <code>editare</code> pentru comenzi.\") }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "id": "m1-26",
+      "name": "Răspunde ajutor",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        540
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "<<TODO: id credențială>>",
+          "name": "Telegram OK bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger 16:00": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Este Sorin?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Este Sorin?": {
+      "main": [
+        [
+          {
+            "node": "Interpretează mesajul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpretează mesajul": {
+      "main": [
+        [
+          {
+            "node": "Ce facem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ce facem?": {
+      "main": [
+        [
+          {
+            "node": "Traducem cu DeepL?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descarcă poza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Citește JSON curent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Citește JSON curent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Răspunde ajutor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Citește JSON curent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Citește fișierul de editat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Citește fișierul de editat": {
+      "main": [
+        [
+          {
+            "node": "Aplică modificarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aplică modificarea": {
+      "main": [
+        [
+          {
+            "node": "Scriem modificarea?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scriem modificarea?": {
+      "main": [
+        [
+          {
+            "node": "Scrie fișierul editat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmă editarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrie fișierul editat": {
+      "main": [
+        [
+          {
+            "node": "Confirmă editarea",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmă editarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traducem cu DeepL?": {
+      "main": [
+        [
+          {
+            "node": "DeepL EN",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Traduceri",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepL EN": {
+      "main": [
+        [
+          {
+            "node": "DeepL BG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepL BG": {
+      "main": [
+        [
+          {
+            "node": "Traduceri",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traduceri": {
+      "main": [
+        [
+          {
+            "node": "Citește JSON curent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descarcă poza": {
+      "main": [
+        [
+          {
+            "node": "Redimensionează",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redimensionează": {
+      "main": [
+        [
+          {
+            "node": "Citește JSON curent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Citește JSON curent": {
+      "main": [
+        [
+          {
+            "node": "Îmbină",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Îmbină": {
+      "main": [
+        [
+          {
+            "node": "Scriem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scriem?": {
+      "main": [
+        [
+          {
+            "node": "Scrie meniu-zilei.json",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmă",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrie meniu-zilei.json": {
+      "main": [
+        [
+          {
+            "node": "Are poză?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Are poză?": {
+      "main": [
+        [
+          {
+            "node": "Pregătește poza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmă",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pregătește poza": {
+      "main": [
+        [
+          {
+            "node": "Urcă poza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urcă poza": {
+      "main": [
+        [
+          {
+            "node": "Confirmă",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Bucharest",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "descriere": "Telegram → data/meniu-zilei.json (+ poze) → commit GitHub → Cloudflare Pages; de la M8 și editarea program.json / catering.json / torturi.json din comenzi Telegram. Vezi n8n/README.md."
+  }
+}

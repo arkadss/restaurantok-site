@@ -1,0 +1,152 @@
+<!-- @page
+  title: Cofetăria OK — torturi la comandă
+  descriere: Cofetăria OK din Calafat: torturi la comandă pentru aniversări, nunți și botezuri, torturi personalizate după model, prăjituri de casă. Comandă online, pe WhatsApp sau la 0785255855.
+  nav: cofetaria
+-->
+<!-- @partial head -->
+<!-- @partial header -->
+
+<section class="erou erou-pagina">
+  <div class="container">
+    <span class="eticheta">Cofetăria</span>
+    <h1>Cofetăria OK</h1>
+    <p>Torturi făcute la comandă, după gustul și ocazia ta, și prăjituri de casă pentru masa de duminică. Aceeași cofetărie care face desertul de la restaurant și torturile de la evenimentele din Sala de bal OK.</p>
+    <div class="butoane">
+      <a class="buton" href="#comanda">Comandă un tort</a>
+      <a class="buton buton-whatsapp" href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20A%C8%99%20vrea%20s%C4%83%20comand%20un%20tort." rel="noopener" target="_blank">Scrie pe WhatsApp</a>
+      <a class="buton buton-secundar" href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>
+    </div>
+    <span class="deschis-acum" data-deschis-acum="cofetaria" hidden></span>
+  </div>
+  <!-- @partial dunare -->
+</section>
+
+<section class="sectiune" id="torturi">
+  <div class="container">
+    <div class="sectiune-cap">
+      <span class="eticheta">La comandă</span>
+      <h2>Torturi și prăjituri</h2>
+      <p>Alege un tort din listă sau trimite-ne o poză cu modelul dorit. Prețul final depinde de greutate și de decor; îl confirmăm telefonic.</p>
+    </div>
+    <!-- M4: catalogul din data/torturi.json (site.js → randeazaTorturi). Blocul data-torturi-fallback rămâne vizibil când JSON-ul lipsește sau e stricat. -->
+    <div data-torturi>
+      <div class="nota" data-torturi-fallback>
+        <p>Catalogul cu poze și prețuri nu s-a putut încărca. Trimite-ne pe <a href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20A%C8%99%20vrea%20s%C4%83%20comand%20un%20tort." rel="noopener" target="_blank">WhatsApp</a> o poză cu modelul dorit, data și numărul de persoane, sau folosește <a href="#comanda">formularul de mai jos</a>.</p>
+      </div>
+    </div>
+    <p class="mic mut sus-1">Alergenii fiecărui produs sunt trecuți la tort și pe <a href="alergeni.html">pagina de alergeni</a>. Dacă ai nevoie de un tort fără gluten, fără lactoză sau fără ou, scrie-ne; multe se pot adapta.</p>
+  </div>
+</section>
+
+<section class="sectiune" id="comanda">
+  <div class="container">
+    <div class="grila grila-2 grila-cerere">
+      <div>
+        <span class="eticheta">Comandă online</span>
+        <h2>Spune-ne ce tort vrei</h2>
+        <p>Completezi într-un minut; te sunăm să confirmăm modelul, greutatea, prețul și ora ridicării. O poză cu modelul dorit ne ajută cel mai mult.</p>
+
+        <form class="formular" data-cerere="tort" method="post" action="https://hooks.restaurantok.com/webhook/site-cerere" novalidate>
+          <p class="formular-eroare" data-eroare role="alert" hidden></p>
+          <div class="camp">
+            <label for="c-tort">Ce tort</label>
+            <select id="c-tort" name="tort" required>
+              <option value="">Alege…</option>
+              <option value="personalizat">Tort personalizat, după modelul din poză</option>
+            </select>
+          </div>
+          <div class="camp-rand">
+            <div class="camp">
+              <label for="c-data">Pentru ce dată</label>
+              <input id="c-data" name="data_eveniment" type="date" required>
+              <small class="camp-ajutor" data-data-ajutor hidden></small>
+            </div>
+            <div class="camp">
+              <label for="c-persoane">Pentru câte persoane</label>
+              <input id="c-persoane" name="persoane" type="number" inputmode="numeric" min="1" max="999" required placeholder="ex. 12">
+            </div>
+          </div>
+          <div class="camp">
+            <label for="c-poza">Poză cu modelul dorit <span class="mut">(opțional, până la 5 MB)</span></label>
+            <input id="c-poza" name="poza" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/*">
+            <small class="camp-ajutor" data-poza-ajutor hidden></small>
+            <div class="poza-model" data-poza-previzualizare hidden>
+              <img src="data:," alt="Modelul ales" data-poza-img>
+              <button type="button" class="buton buton-secundar" data-poza-sterge>Scoate poza</button>
+            </div>
+          </div>
+          <div class="camp">
+            <label for="c-mesaj">Detalii <span class="mut">(opțional)</span></label>
+            <textarea id="c-mesaj" name="mesaj" rows="3" maxlength="1500" placeholder="Mesajul de pe tort, cremă preferată, alergii, câte kilograme, ora la care vii să-l ridici."></textarea>
+          </div>
+          <div class="camp">
+            <label for="c-nume">Numele tău</label>
+            <input id="c-nume" name="nume" type="text" autocomplete="name" required minlength="2" maxlength="80">
+          </div>
+          <div class="camp-rand">
+            <div class="camp">
+              <label for="c-telefon">Telefon</label>
+              <input id="c-telefon" name="telefon" type="tel" autocomplete="tel" inputmode="tel" required placeholder="07xx xxx xxx">
+            </div>
+            <div class="camp">
+              <label for="c-email">Email <span class="mut">(opțional)</span></label>
+              <input id="c-email" name="email" type="email" autocomplete="email" maxlength="120">
+            </div>
+          </div>
+          <div class="camp camp-website" aria-hidden="true">
+            <label for="c-website">Website</label>
+            <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+          <div class="camp camp-bifa">
+            <input id="c-consimtamant" name="consimtamant" type="checkbox" required>
+            <label for="c-consimtamant">Sunt de acord ca datele de mai sus (și poza, dacă am trimis una) să fie folosite doar pentru această comandă. <a href="politica-de-confidentialitate.html">Cum le folosim</a>.</label>
+          </div>
+          <div class="butoane">
+            <button class="buton" type="submit" data-trimite>Trimite comanda</button>
+            <a class="buton buton-whatsapp" data-whatsapp-cerere href="https://wa.me/{{contact.whatsapp}}?text=Bun%C4%83!%20A%C8%99%20vrea%20s%C4%83%20comand%20un%20tort." rel="noopener" target="_blank">Scrie pe WhatsApp</a>
+          </div>
+          <p class="mic mut">Comanda se confirmă telefonic. Nu trimitem reclame și nu dăm datele mai departe. Fără cookie-uri.</p>
+        </form>
+
+        <div class="formular-confirmare" data-confirmare hidden tabindex="-1">
+          <h3>Am primit comanda, mulțumim!</h3>
+          <p data-confirmare-text></p>
+          <p class="mic mut" data-confirmare-id></p>
+          <p>Dacă e urgent, ne găsești la <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>.</p>
+        </div>
+
+        <div class="formular-rezerva" data-rezerva hidden tabindex="-1">
+          <h3>Nu am reușit să trimitem comanda</h3>
+          <p>Nu e nimic pierdut: apasă mai jos și comanda ta, gata scrisă, pleacă pe WhatsApp (poza modelului o atașezi acolo). Sau sună-ne direct.</p>
+          <div class="butoane">
+            <a class="buton buton-whatsapp" data-rezerva-whatsapp href="https://wa.me/{{contact.whatsapp}}" rel="noopener" target="_blank">Trimite pe WhatsApp</a>
+            <a class="buton buton-secundar" href="tel:+4{{contact.telefon}}">Sună {{contact.telefon}}</a>
+            <button class="buton buton-secundar" type="button" data-rezerva-inapoi>Încearcă din nou</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card card-dunare">
+          <h3>Cum comanzi un tort</h3>
+          <ol class="pasi">
+            <li>Alegi tortul sau trimiți o poză cu modelul, spui data și numărul de persoane.</li>
+            <li>Te sunăm, stabilim greutatea, decorul și prețul; confirmi.</li>
+            <li>Ridici tortul de la cofetărie la ora stabilită; la evenimentele din Sala de bal OK îl aducem noi.</li>
+          </ol>
+          <p class="mic">Comenzile se dau cu câteva zile înainte; pentru torturi de nuntă sau după model, cu o săptămână. <span class="todo">TODO-Sorin: termenul minim real și avansul, dacă se cere</span></p>
+        </div>
+        <div class="card sus-1">
+          <h3>Program cofetărie</h3>
+          <div data-program-lista="cofetaria">
+            <p>Programul: sună la <a href="tel:+4{{contact.telefon}}">{{contact.telefon}}</a>.</p>
+          </div>
+          <p class="mic mut sus-1">{{contact.adresa}} · <a href="{{contact.harta_url}}" rel="noopener" target="_blank">Google Maps</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- @partial bara-mobil -->
+<!-- @partial footer -->

@@ -1,0 +1,12 @@
+{
+  "_exemplu": true,
+  "_nota": "Exemplu. Scris de n8n (workflow evenimente, zilnic) din calendarul Google „Evenimente OK”. Site-ul arată doar evenimentele viitoare și ascunde secțiunea dacă `actualizat` are peste 7 zile. TODO-Sorin: calendarul „Evenimente OK” (OAuth în n8n, M7).",
+  "actualizat": "2026-10-19T06:00:00+03:00",
+  "fus_orar": "Europe/Bucharest",
+  "sursa": "Google Calendar „Evenimente OK”",
+  "evenimente": [
+    { "id": "ex1", "titlu": "Seară cu DJ pe Terasa OK", "inceput": "2026-10-24T20:00:00+03:00", "sfarsit": "2026-10-25T01:00:00+03:00", "loc": "Gastro-pub OK", "descriere": "Intrare liberă. Rezervă masa la 0785255855.", "poza": null, "url": null },
+    { "id": "ex2", "titlu": "Degustare de vin", "inceput": "2026-11-07T19:00:00+02:00", "sfarsit": "2026-11-07T22:00:00+02:00", "loc": "Sala de bal OK", "descriere": "Vinuri de la trei crame din Oltenia, cu meniu de însoțire. Rezervare obligatorie.", "poza": null, "url": null },
+    { "id": "ex3", "titlu": "Revelion 2027 la Sala de bal OK", "inceput": "2026-12-31T20:00:00+02:00", "sfarsit": "2027-01-01T05:00:00+02:00", "loc": "Sala de bal OK", "descriere": "Meniu festiv, muzică live, program pentru copii. Locuri limitate.", "poza": null, "url": null }
+  ]
+}

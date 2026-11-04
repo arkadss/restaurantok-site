@@ -1,0 +1,10 @@
+{
+  "_exemplu": true,
+  "actualizat": "2026-10-19T06:00:00+03:00",
+  "orizont_zile": 365,
+  "sursa": "Google Calendar „Sala de bal OK\"",
+  "ocupat": ["2026-11-14", "2026-11-21", "2026-12-05", "2026-12-12", "2026-12-19", "2026-12-31"],
+  "partial": [
+    { "data": "2026-11-28", "nota": "ocupat seara" }
+  ]
+}
