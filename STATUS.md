@@ -2,7 +2,7 @@
 
 Mod: ACTIV. (Scrie `PAUZĂ` pe acest rând ca să oprești sesiunile nocturne.)
 Program de lucru nocturn: zilnic la 02:48 Europe/Bucharest, un modul pe noapte.
-Ultima actualizare: 2026-11-04, sesiune nocturnă 16 (nimic de construit: M0–M8 gata, M7 așteaptă sesiunea cu Sorin; verificare de sănătate trecută — build, 20 suite de teste, JSON-uri; primul push pe GitHub reușit; se așteaptă o decizie: rând `todo` nou sau `PAUZĂ`).
+Ultima actualizare: 2026-11-05, sesiune nocturnă 17 (nimic de construit: M0–M8 gata, M7 așteaptă sesiunea cu Sorin; verificare de sănătate trecută — build, 20 suite de teste, workflow-uri n8n; se așteaptă o decizie: rând `todo` nou sau `PAUZĂ`).
 
 | Modul | Stare | Data | Note |
 |---|---|---|---|
@@ -101,6 +101,7 @@ Lista de lucru, în ordinea în care merită făcute. Ce e bifat e rezolvat; res
 
 ## Jurnal
 
+- 2026-11-05 — Sesiune nocturnă 17: niciun modul `în lucru` sau `todo`, nimic construit. Verificare: `node build.js` (16 pagini), `node n8n/valideaza.js`, 20 suite de teste, toate trecute; repo-ul GitHub identic cu artefactul la început. Push: pe branch-ul de sesiune `claude/stoic-ptolemy-xik4d4` (regula sesiunii interzice `main`); rezultatul în rândul de mai jos.
 - 2026-11-04 — Cu Sorin: `orca/SESIUNE-ORCA.md` — brief pentru o sesiune Claude Code pe orca (Remote Control de pe laptop) care face instalarea M7 singură și îl întreabă pe Sorin doar la pașii cu cont, browser sau secret: etapa 1 (inventar, compose, tabel `cereri`, `.env`) fără Sorin; etapa 2 (~15 min: cheia API n8n, Telegram, GitHub PAT → `meniu-zilei` și editarea prin Telegram vii înainte de go-live); etapa 3 = go-live; etapa 4 = restul cheilor. `.gitignore`: `orca/.inventar.txt`, `orca/.instalat.json`.
 - 2026-11-04 — Sesiune nocturnă 16: niciun modul `în lucru` sau `todo`, nimic construit. Verificare: `node build.js` (16 pagini), `node n8n/valideaza.js`, toate JSON-urile, 20 suite de teste (inclusiv Chromium la 400 px) — trecute. GitHub: repo-ul era gol; primul commit împins pe `main` (și pe branch-ul sesiunii `claude/stoic-ptolemy-897hcv`) — reușit (un avertisment inofensiv de negociere la push). Se așteaptă decizia lui Sorin: rând `todo` nou sau `PAUZĂ`. Bifat în C: repo-ul acceptă acum push din sesiune.
 - 2026-11-04 14:44 — Sesiune nocturnă 15 (rulată după-amiaza): niciun modul `în lucru` sau `todo` în tabel (M7 `blocat` până la sesiunea cu Sorin), deci nu s-a construit nimic. Fișierele proiectului neschimbate față de 30 oct; verificare de sănătate: `node build.js` OK (16 pagini), toate cele 20 de suite de teste trec (inclusiv Chromium la 400 px, accesibilitate, editare-site), `node n8n/valideaza.js` OK (6 workflow-uri), toate JSON-urile din `data/`, `n8n/`, `src/i18n/`, `tests/` valide. Tool-urile `list_repos`/`add_repo` lipsesc în sesiune: pasul de push sărit, ca și până acum. Republicat doar STATUS.md. Aceeași decizie rămâne la Sorin: rând `todo` nou în tabel sau `PAUZĂ` pe rândul „Mod:" — fără una din ele, sesiunile următoare repetă doar această verificare.
