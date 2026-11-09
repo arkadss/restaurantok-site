@@ -65,7 +65,7 @@ caz('cei 6 parametri: cerere nouă, ce (Sala de bal — Nuntă / cununie, sala),
   assert.ok(/^Sala de bal — Nuntă \/ cununie \(Sala de bal OK\)$/.test(p[1]), p[1]);
   assert.equal(p[2], 'Ion Popescu'); // spațiile duble din nume sunt reduse la unul
   assert.equal(p[3], '0722 123 456');
-  assert.ok(/, \d{1,2} [a-zăâî]+ \d{4}, 120 persoane$/.test(p[4]), p[4]);
+  assert.ok(/, \d{1,2} [a-zăâîșț]+ \d{4}, 120 persoane$/.test(p[4]), p[4]);
   assert.equal(p[5], sala.id);
   assert.ok(p.every(t => t && !/[\r\n\t]/.test(t) && !/ {4,}/.test(t)), 'parametrii nu au rânduri noi, taburi sau 4+ spații și nu sunt goi');
 });
@@ -91,7 +91,7 @@ caz('catering prânz la birou: „comandă nouă", tipul comenzii + livrarea, �
   const r = whatsapp(v, Object.assign({}, activ, { whatsapp: 'sorin+client' }));
   const p = parametri(r[0]);
   assert.equal(p[0], 'comandă nouă'); assert.equal(p[1], 'Catering — Prânz la birou, livrare la Str. Tudor Vladimirescu 10, Calafat');
-  assert.ok(/^de [a-zăâî]+, \d{1,2} [a-zăâî]+ \d{4}, ora 12:30, 15 porții pe zi$/.test(p[4]), p[4]);
+  assert.ok(/^de [a-zăâîșț]+, \d{1,2} [a-zăâîșț]+ \d{4}, ora 12:30, 15 porții pe zi$/.test(p[4]), p[4]);
   assert.ok(/^comanda ta de prânz la birou, de .* încolo$/.test(parametri(r[1])[1]), parametri(r[1])[1]);
 });
 
@@ -109,7 +109,7 @@ caz('tort cu poză-model: „Tort — <nume>, cu poză-model", „pentru <data>"
   assert.equal(v.ok, true, JSON.stringify(v.raspuns));
   const r = whatsapp(v, Object.assign({}, activ, { whatsapp: 'sorin+client' }));
   assert.equal(parametri(r[0])[1], 'Tort — Tort diplomat, cu poză-model');
-  assert.ok(/^pentru [a-zăâî]+, \d{1,2} [a-zăâî]+ \d{4}, 12 persoane$/.test(parametri(r[0])[4]), parametri(r[0])[4]);
+  assert.ok(/^pentru [a-zăâîșț]+, \d{1,2} [a-zăâîșț]+ \d{4}, 12 persoane$/.test(parametri(r[0])[4]), parametri(r[0])[4]);
   assert.ok(/^comanda ta de tort \(Tort diplomat\) pentru /.test(parametri(r[1])[1]));
 });
 

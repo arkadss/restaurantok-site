@@ -22,7 +22,7 @@ const maine = pz(azi, 1), poimaine = pz(azi, 2);
 const lant = (fisier, comenzi) => comenzi.reduce((json, c) => { const r = E.aplica(E.interpreteaza(c, acum), json, acum); assert.ok(r.scrie, c + ' → ' + r.mesaj); return r.continut; }, citeste(fisier));
 const program = lant('program.json', [`închis ${ddmm(maine)} Inventar`, `deschis ${ddmm(poimaine)} 10:00-16:00 cofetărie Eveniment privat`, 'program cofetărie: luni-sâmbătă 9-20, duminică închis']);
 const zs = new Date(azi + 'T00:00:00Z').getUTCDay(); // meniul săptămânii: săptămâna în care cade „azi" (ca să fie zile de azi încolo), fără sâmbătă/duminică
-const luniCurent = pz(azi, zs === 0 ? -6 : 1 - zs);
+const luniCurent = pz(azi, zs === 0 ? 1 : zs === 6 ? 2 : 1 - zs); // sâmbătă/duminică: luni viitoare
 const ziCmd = ['luni', 'marți', 'miercuri', 'joi', 'vineri'];
 const catering = lant('catering.json', [`săptămâna de la ${ddmm(luniCurent)}: ` + ziCmd.map((z, i) => `${z} ciorbă de test ${i + 1}, fel principal ${i + 1}`).join('; ') + '; 26 lei']);
 const torturi = lant('torturi.json', ['tort diplomat: 120 lei/kg, 3 zile', 'tort prăjituri: 8 lei bucata']);
