@@ -2,7 +2,7 @@
 
 Mod: ACTIV. (Scrie `PAUZĂ` pe acest rând ca să oprești sesiunile nocturne.)
 Program de lucru nocturn: zilnic la 02:48 Europe/Bucharest, un modul pe noapte.
-Ultima actualizare: 2026-11-09, sesiune nocturnă 21 (nimic de construit; verificare de sănătate trecută; se așteaptă o decizie: rând `todo` nou sau `PAUZĂ`). Înainte: 2026-11-08, sesiune nocturnă 20.
+Ultima actualizare: 2026-11-10, sesiune nocturnă 22 (nimic de construit; verificare de sănătate trecută; se așteaptă o decizie: rând `todo` nou sau `PAUZĂ`). Înainte: 2026-11-09, sesiune nocturnă 21.
 
 | Modul | Stare | Data | Note |
 |---|---|---|---|
@@ -101,6 +101,7 @@ Lista de lucru, în ordinea în care merită făcute. Ce e bifat e rezolvat; res
 
 ## Jurnal
 
+- 2026-11-10 — Sesiune nocturnă 22 (marți): niciun modul `în lucru` sau `todo` (M7 rămâne `blocat`, așteaptă sesiunea cu Sorin), nimic construit. Verificare: `node build.js` OK (16 pagini), `node n8n/valideaza.js` OK, JSON-urile din `data/` valide, toate cele 20 de suite de teste trec (inclusiv Chromium la 400 px). GitHub: push pe branch-ul de sesiune `claude/stoic-ptolemy-7fyajs` (regula sesiunii), `main` neatins; rezultat: vezi rândul de mai jos. Decizia rămâne la Sorin: rând `todo` nou sau `PAUZĂ` pe rândul „Mod:".
 - 2026-11-09 — Sesiune nocturnă 21 (luni): niciun modul `în lucru` sau `todo`, nimic construit. Verificare: `node build.js` OK (16 pagini), `node n8n/valideaza.js` OK, toate JSON-urile valide, toate cele 20 de suite de teste trec (inclusiv Chromium la 400 px). GitHub: clona repo-ului era în urmă cu două teste (`editare-site`, `n8n-whatsapp`, corectate în artefact în sesiunea 19); sincronizat, push pe `main` reușit (commit 7840075). Decizia rămâne la Sorin: rând `todo` nou sau `PAUZĂ` pe rândul „Mod:".
 - 2026-11-08 — Sesiune nocturnă 20 (duminică): niciun modul `în lucru` sau `todo`, nimic construit. Verificare: `node build.js` (16 pagini), `node n8n/valideaza.js`, JSON-urile din `data/` și `n8n/`, 20 suite de teste (inclusiv Chromium la 400 px) — toate trecute. Repo-ul GitHub era în urma artefactului (STATUS.md și două teste); sincronizat. Push pe branch-ul de sesiune `claude/stoic-ptolemy-eigstm` (regula sesiunii); rezultatul: vezi rândul de mai jos.
 - 2026-11-08 — Push GitHub (sesiunea 20): reușit, branch `claude/stoic-ptolemy-eigstm` (branch nou pe origin); `main` neatins.
