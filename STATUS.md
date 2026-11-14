@@ -2,7 +2,7 @@
 
 Mod: ACTIV. (Scrie `PAUZĂ` pe acest rând ca să oprești sesiunile nocturne.)
 Program de lucru nocturn: zilnic la 02:48 Europe/Bucharest, un modul pe noapte.
-Ultima actualizare: 2026-11-13, sesiune nocturnă 25 (nimic de construit; verificare de sănătate trecută; se așteaptă o decizie: rând `todo` nou sau `PAUZĂ`). Înainte: 2026-11-12, sesiune nocturnă 24.
+Ultima actualizare: 2026-11-14, sesiune nocturnă 26 (nimic de construit; verificare de sănătate trecută; se așteaptă o decizie: rând `todo` nou sau `PAUZĂ`). Înainte: 2026-11-13, sesiune nocturnă 25.
 
 | Modul | Stare | Data | Note |
 |---|---|---|---|
@@ -101,6 +101,7 @@ Lista de lucru, în ordinea în care merită făcute. Ce e bifat e rezolvat; res
 
 ## Jurnal
 
+- 2026-11-14 — Sesiune nocturnă 26 (sâmbătă): niciun modul `în lucru` sau `todo` (M7 rămâne `blocat`, așteaptă sesiunea cu Sorin), nimic construit. Verificare: `node build.js` OK (16 pagini), `node n8n/valideaza.js` OK, toate JSON-urile din `data/`, `n8n/`, `src/i18n/`, `tests/` valide, toate cele 20 de suite de teste trec (inclusiv Chromium la 400 px). Repo-ul GitHub era identic cu artefactul; se actualizează doar STATUS.md. Se așteaptă decizia lui Sorin: rând `todo` nou sau `PAUZĂ`.
 - 2026-11-13 — Sesiune nocturnă 25 (vineri): niciun modul `în lucru` sau `todo` (M7 rămâne `blocat`, așteaptă sesiunea cu Sorin), nimic construit. Verificare: `node build.js` OK (16 pagini), `node n8n/valideaza.js` OK, toate JSON-urile din `data/`, `n8n/`, `src/i18n/`, `tests/` valide, toate cele 20 de suite de teste trec (inclusiv Chromium la 400 px). Repo-ul GitHub era identic cu artefactul; se actualizează doar STATUS.md. Se așteaptă decizia lui Sorin: rând `todo` nou sau `PAUZĂ`.
 - 2026-11-13 — Push GitHub (sesiunea 25): reușit pe `main` (commit 69d4af4) și pe `claude/stoic-ptolemy-u239jt`.
 - 2026-11-12 — Sesiune nocturnă 24 (joi): niciun modul `în lucru` sau `todo` (M7 rămâne `blocat`, așteaptă sesiunea cu Sorin), nimic construit. Verificare: `node build.js` OK (16 pagini), `node n8n/valideaza.js` OK, toate JSON-urile din `data/`, `n8n/`, `src/i18n/`, `tests/` valide, toate cele 20 de suite de teste trec (inclusiv Chromium la 400 px). Repo-ul GitHub era identic cu artefactul. GitHub: push pe `main` și pe branch-ul sesiunii `claude/stoic-ptolemy-7q9vj1`; rezultat: vezi rândul de mai jos. Decizia rămâne la Sorin: rând `todo` nou sau `PAUZĂ` pe rândul „Mod:".
